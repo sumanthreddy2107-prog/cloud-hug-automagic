@@ -13,6 +13,18 @@ import { Route as StudentRouteImport } from './routes/student'
 import { Route as OwnerRouteImport } from './routes/owner'
 import { Route as OtpRouteImport } from './routes/otp'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StudentSeatsRouteImport } from './routes/student.seats'
+import { Route as StudentPaymentRouteImport } from './routes/student.payment'
+import { Route as StudentHomeRouteImport } from './routes/student.home'
+import { Route as StudentConfirmedRouteImport } from './routes/student.confirmed'
+import { Route as StudentConfirmRouteImport } from './routes/student.confirm'
+import { Route as StudentBookRouteImport } from './routes/student.book'
+import { Route as OwnerSettingsRouteImport } from './routes/owner.settings'
+import { Route as OwnerSeatsRouteImport } from './routes/owner.seats'
+import { Route as OwnerRevenueRouteImport } from './routes/owner.revenue'
+import { Route as OwnerDashboardRouteImport } from './routes/owner.dashboard'
+import { Route as OwnerBookingsRouteImport } from './routes/owner.bookings'
+import { Route as OwnerAlertsRouteImport } from './routes/owner.alerts'
 import { Route as LoginStudentRouteImport } from './routes/login.student'
 import { Route as LoginOwnerRouteImport } from './routes/login.owner'
 
@@ -36,6 +48,66 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StudentSeatsRoute = StudentSeatsRouteImport.update({
+  id: '/seats',
+  path: '/seats',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentPaymentRoute = StudentPaymentRouteImport.update({
+  id: '/payment',
+  path: '/payment',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentHomeRoute = StudentHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentConfirmedRoute = StudentConfirmedRouteImport.update({
+  id: '/confirmed',
+  path: '/confirmed',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentConfirmRoute = StudentConfirmRouteImport.update({
+  id: '/confirm',
+  path: '/confirm',
+  getParentRoute: () => StudentRoute,
+} as any)
+const StudentBookRoute = StudentBookRouteImport.update({
+  id: '/book',
+  path: '/book',
+  getParentRoute: () => StudentRoute,
+} as any)
+const OwnerSettingsRoute = OwnerSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerSeatsRoute = OwnerSeatsRouteImport.update({
+  id: '/seats',
+  path: '/seats',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerRevenueRoute = OwnerRevenueRouteImport.update({
+  id: '/revenue',
+  path: '/revenue',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerDashboardRoute = OwnerDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerBookingsRoute = OwnerBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerAlertsRoute = OwnerAlertsRouteImport.update({
+  id: '/alerts',
+  path: '/alerts',
+  getParentRoute: () => OwnerRoute,
+} as any)
 const LoginStudentRoute = LoginStudentRouteImport.update({
   id: '/login/student',
   path: '/login/student',
@@ -50,27 +122,63 @@ const LoginOwnerRoute = LoginOwnerRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/otp': typeof OtpRoute
-  '/owner': typeof OwnerRoute
-  '/student': typeof StudentRoute
+  '/owner': typeof OwnerRouteWithChildren
+  '/student': typeof StudentRouteWithChildren
   '/login/owner': typeof LoginOwnerRoute
   '/login/student': typeof LoginStudentRoute
+  '/owner/alerts': typeof OwnerAlertsRoute
+  '/owner/bookings': typeof OwnerBookingsRoute
+  '/owner/dashboard': typeof OwnerDashboardRoute
+  '/owner/revenue': typeof OwnerRevenueRoute
+  '/owner/seats': typeof OwnerSeatsRoute
+  '/owner/settings': typeof OwnerSettingsRoute
+  '/student/book': typeof StudentBookRoute
+  '/student/confirm': typeof StudentConfirmRoute
+  '/student/confirmed': typeof StudentConfirmedRoute
+  '/student/home': typeof StudentHomeRoute
+  '/student/payment': typeof StudentPaymentRoute
+  '/student/seats': typeof StudentSeatsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/otp': typeof OtpRoute
-  '/owner': typeof OwnerRoute
-  '/student': typeof StudentRoute
+  '/owner': typeof OwnerRouteWithChildren
+  '/student': typeof StudentRouteWithChildren
   '/login/owner': typeof LoginOwnerRoute
   '/login/student': typeof LoginStudentRoute
+  '/owner/alerts': typeof OwnerAlertsRoute
+  '/owner/bookings': typeof OwnerBookingsRoute
+  '/owner/dashboard': typeof OwnerDashboardRoute
+  '/owner/revenue': typeof OwnerRevenueRoute
+  '/owner/seats': typeof OwnerSeatsRoute
+  '/owner/settings': typeof OwnerSettingsRoute
+  '/student/book': typeof StudentBookRoute
+  '/student/confirm': typeof StudentConfirmRoute
+  '/student/confirmed': typeof StudentConfirmedRoute
+  '/student/home': typeof StudentHomeRoute
+  '/student/payment': typeof StudentPaymentRoute
+  '/student/seats': typeof StudentSeatsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/otp': typeof OtpRoute
-  '/owner': typeof OwnerRoute
-  '/student': typeof StudentRoute
+  '/owner': typeof OwnerRouteWithChildren
+  '/student': typeof StudentRouteWithChildren
   '/login/owner': typeof LoginOwnerRoute
   '/login/student': typeof LoginStudentRoute
+  '/owner/alerts': typeof OwnerAlertsRoute
+  '/owner/bookings': typeof OwnerBookingsRoute
+  '/owner/dashboard': typeof OwnerDashboardRoute
+  '/owner/revenue': typeof OwnerRevenueRoute
+  '/owner/seats': typeof OwnerSeatsRoute
+  '/owner/settings': typeof OwnerSettingsRoute
+  '/student/book': typeof StudentBookRoute
+  '/student/confirm': typeof StudentConfirmRoute
+  '/student/confirmed': typeof StudentConfirmedRoute
+  '/student/home': typeof StudentHomeRoute
+  '/student/payment': typeof StudentPaymentRoute
+  '/student/seats': typeof StudentSeatsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,8 +189,38 @@ export interface FileRouteTypes {
     | '/student'
     | '/login/owner'
     | '/login/student'
+    | '/owner/alerts'
+    | '/owner/bookings'
+    | '/owner/dashboard'
+    | '/owner/revenue'
+    | '/owner/seats'
+    | '/owner/settings'
+    | '/student/book'
+    | '/student/confirm'
+    | '/student/confirmed'
+    | '/student/home'
+    | '/student/payment'
+    | '/student/seats'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/otp' | '/owner' | '/student' | '/login/owner' | '/login/student'
+  to:
+    | '/'
+    | '/otp'
+    | '/owner'
+    | '/student'
+    | '/login/owner'
+    | '/login/student'
+    | '/owner/alerts'
+    | '/owner/bookings'
+    | '/owner/dashboard'
+    | '/owner/revenue'
+    | '/owner/seats'
+    | '/owner/settings'
+    | '/student/book'
+    | '/student/confirm'
+    | '/student/confirmed'
+    | '/student/home'
+    | '/student/payment'
+    | '/student/seats'
   id:
     | '__root__'
     | '/'
@@ -91,13 +229,25 @@ export interface FileRouteTypes {
     | '/student'
     | '/login/owner'
     | '/login/student'
+    | '/owner/alerts'
+    | '/owner/bookings'
+    | '/owner/dashboard'
+    | '/owner/revenue'
+    | '/owner/seats'
+    | '/owner/settings'
+    | '/student/book'
+    | '/student/confirm'
+    | '/student/confirmed'
+    | '/student/home'
+    | '/student/payment'
+    | '/student/seats'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OtpRoute: typeof OtpRoute
-  OwnerRoute: typeof OwnerRoute
-  StudentRoute: typeof StudentRoute
+  OwnerRoute: typeof OwnerRouteWithChildren
+  StudentRoute: typeof StudentRouteWithChildren
   LoginOwnerRoute: typeof LoginOwnerRoute
   LoginStudentRoute: typeof LoginStudentRoute
 }
@@ -132,6 +282,90 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/student/seats': {
+      id: '/student/seats'
+      path: '/seats'
+      fullPath: '/student/seats'
+      preLoaderRoute: typeof StudentSeatsRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/payment': {
+      id: '/student/payment'
+      path: '/payment'
+      fullPath: '/student/payment'
+      preLoaderRoute: typeof StudentPaymentRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/home': {
+      id: '/student/home'
+      path: '/home'
+      fullPath: '/student/home'
+      preLoaderRoute: typeof StudentHomeRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/confirmed': {
+      id: '/student/confirmed'
+      path: '/confirmed'
+      fullPath: '/student/confirmed'
+      preLoaderRoute: typeof StudentConfirmedRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/confirm': {
+      id: '/student/confirm'
+      path: '/confirm'
+      fullPath: '/student/confirm'
+      preLoaderRoute: typeof StudentConfirmRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/student/book': {
+      id: '/student/book'
+      path: '/book'
+      fullPath: '/student/book'
+      preLoaderRoute: typeof StudentBookRouteImport
+      parentRoute: typeof StudentRoute
+    }
+    '/owner/settings': {
+      id: '/owner/settings'
+      path: '/settings'
+      fullPath: '/owner/settings'
+      preLoaderRoute: typeof OwnerSettingsRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/seats': {
+      id: '/owner/seats'
+      path: '/seats'
+      fullPath: '/owner/seats'
+      preLoaderRoute: typeof OwnerSeatsRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/revenue': {
+      id: '/owner/revenue'
+      path: '/revenue'
+      fullPath: '/owner/revenue'
+      preLoaderRoute: typeof OwnerRevenueRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/dashboard': {
+      id: '/owner/dashboard'
+      path: '/dashboard'
+      fullPath: '/owner/dashboard'
+      preLoaderRoute: typeof OwnerDashboardRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/bookings': {
+      id: '/owner/bookings'
+      path: '/bookings'
+      fullPath: '/owner/bookings'
+      preLoaderRoute: typeof OwnerBookingsRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/alerts': {
+      id: '/owner/alerts'
+      path: '/alerts'
+      fullPath: '/owner/alerts'
+      preLoaderRoute: typeof OwnerAlertsRouteImport
+      parentRoute: typeof OwnerRoute
+    }
     '/login/student': {
       id: '/login/student'
       path: '/login/student'
@@ -149,11 +383,52 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface OwnerRouteChildren {
+  OwnerAlertsRoute: typeof OwnerAlertsRoute
+  OwnerBookingsRoute: typeof OwnerBookingsRoute
+  OwnerDashboardRoute: typeof OwnerDashboardRoute
+  OwnerRevenueRoute: typeof OwnerRevenueRoute
+  OwnerSeatsRoute: typeof OwnerSeatsRoute
+  OwnerSettingsRoute: typeof OwnerSettingsRoute
+}
+
+const OwnerRouteChildren: OwnerRouteChildren = {
+  OwnerAlertsRoute: OwnerAlertsRoute,
+  OwnerBookingsRoute: OwnerBookingsRoute,
+  OwnerDashboardRoute: OwnerDashboardRoute,
+  OwnerRevenueRoute: OwnerRevenueRoute,
+  OwnerSeatsRoute: OwnerSeatsRoute,
+  OwnerSettingsRoute: OwnerSettingsRoute,
+}
+
+const OwnerRouteWithChildren = OwnerRoute._addFileChildren(OwnerRouteChildren)
+
+interface StudentRouteChildren {
+  StudentBookRoute: typeof StudentBookRoute
+  StudentConfirmRoute: typeof StudentConfirmRoute
+  StudentConfirmedRoute: typeof StudentConfirmedRoute
+  StudentHomeRoute: typeof StudentHomeRoute
+  StudentPaymentRoute: typeof StudentPaymentRoute
+  StudentSeatsRoute: typeof StudentSeatsRoute
+}
+
+const StudentRouteChildren: StudentRouteChildren = {
+  StudentBookRoute: StudentBookRoute,
+  StudentConfirmRoute: StudentConfirmRoute,
+  StudentConfirmedRoute: StudentConfirmedRoute,
+  StudentHomeRoute: StudentHomeRoute,
+  StudentPaymentRoute: StudentPaymentRoute,
+  StudentSeatsRoute: StudentSeatsRoute,
+}
+
+const StudentRouteWithChildren =
+  StudentRoute._addFileChildren(StudentRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OtpRoute: OtpRoute,
-  OwnerRoute: OwnerRoute,
-  StudentRoute: StudentRoute,
+  OwnerRoute: OwnerRouteWithChildren,
+  StudentRoute: StudentRouteWithChildren,
   LoginOwnerRoute: LoginOwnerRoute,
   LoginStudentRoute: LoginStudentRoute,
 }
