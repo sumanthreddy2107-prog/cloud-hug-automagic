@@ -14,7 +14,212 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bookings: {
+        Row: {
+          amount: number
+          booking_code: string
+          created_at: string
+          end_date: string
+          grace_end_date: string | null
+          hold_expires_at: string | null
+          id: string
+          pass_type: string
+          payment_method: string | null
+          payment_status: string
+          seat_id: string
+          start_date: string
+          status: string
+          student_id: string
+          upi_transaction_id: string | null
+        }
+        Insert: {
+          amount: number
+          booking_code: string
+          created_at?: string
+          end_date: string
+          grace_end_date?: string | null
+          hold_expires_at?: string | null
+          id?: string
+          pass_type: string
+          payment_method?: string | null
+          payment_status?: string
+          seat_id: string
+          start_date: string
+          status?: string
+          student_id: string
+          upi_transaction_id?: string | null
+        }
+        Update: {
+          amount?: number
+          booking_code?: string
+          created_at?: string
+          end_date?: string
+          grace_end_date?: string | null
+          hold_expires_at?: string | null
+          id?: string
+          pass_type?: string
+          payment_method?: string | null
+          payment_status?: string
+          seat_id?: string
+          start_date?: string
+          status?: string
+          student_id?: string
+          upi_transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_seat_id_fkey"
+            columns: ["seat_id"]
+            isOneToOne: false
+            referencedRelation: "seats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          booking_id: string | null
+          id: string
+          message: string
+          recipient_phone: string
+          sent_at: string
+          status: string
+          type: string
+        }
+        Insert: {
+          booking_id?: string | null
+          id?: string
+          message: string
+          recipient_phone: string
+          sent_at?: string
+          status?: string
+          type: string
+        }
+        Update: {
+          booking_id?: string | null
+          id?: string
+          message?: string
+          recipient_phone?: string
+          sent_at?: string
+          status?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      otp_requests: {
+        Row: {
+          attempts: number
+          created_at: string
+          expires_at: string
+          id: string
+          otp_code: string
+          phone: string
+          role: string
+          verified: boolean
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          expires_at: string
+          id?: string
+          otp_code: string
+          phone: string
+          role: string
+          verified?: boolean
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          expires_at?: string
+          id?: string
+          otp_code?: string
+          phone?: string
+          role?: string
+          verified?: boolean
+        }
+        Relationships: []
+      }
+      seats: {
+        Row: {
+          block_reason: string | null
+          id: string
+          seat_number: string
+          seat_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          block_reason?: string | null
+          id?: string
+          seat_number: string
+          seat_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          block_reason?: string | null
+          id?: string
+          seat_number?: string
+          seat_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string | null
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: string | null
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string | null
+        }
+        Relationships: []
+      }
+      students: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          phone: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          phone: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
