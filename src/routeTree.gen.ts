@@ -9,38 +9,122 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as StudentRouteImport } from './routes/student'
+import { Route as OwnerRouteImport } from './routes/owner'
+import { Route as OtpRouteImport } from './routes/otp'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LoginStudentRouteImport } from './routes/login.student'
+import { Route as LoginOwnerRouteImport } from './routes/login.owner'
 
+const StudentRoute = StudentRouteImport.update({
+  id: '/student',
+  path: '/student',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OwnerRoute = OwnerRouteImport.update({
+  id: '/owner',
+  path: '/owner',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OtpRoute = OtpRouteImport.update({
+  id: '/otp',
+  path: '/otp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginStudentRoute = LoginStudentRouteImport.update({
+  id: '/login/student',
+  path: '/login/student',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginOwnerRoute = LoginOwnerRouteImport.update({
+  id: '/login/owner',
+  path: '/login/owner',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/otp': typeof OtpRoute
+  '/owner': typeof OwnerRoute
+  '/student': typeof StudentRoute
+  '/login/owner': typeof LoginOwnerRoute
+  '/login/student': typeof LoginStudentRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/otp': typeof OtpRoute
+  '/owner': typeof OwnerRoute
+  '/student': typeof StudentRoute
+  '/login/owner': typeof LoginOwnerRoute
+  '/login/student': typeof LoginStudentRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/otp': typeof OtpRoute
+  '/owner': typeof OwnerRoute
+  '/student': typeof StudentRoute
+  '/login/owner': typeof LoginOwnerRoute
+  '/login/student': typeof LoginStudentRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/otp'
+    | '/owner'
+    | '/student'
+    | '/login/owner'
+    | '/login/student'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/otp' | '/owner' | '/student' | '/login/owner' | '/login/student'
+  id:
+    | '__root__'
+    | '/'
+    | '/otp'
+    | '/owner'
+    | '/student'
+    | '/login/owner'
+    | '/login/student'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  OtpRoute: typeof OtpRoute
+  OwnerRoute: typeof OwnerRoute
+  StudentRoute: typeof StudentRoute
+  LoginOwnerRoute: typeof LoginOwnerRoute
+  LoginStudentRoute: typeof LoginStudentRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/student': {
+      id: '/student'
+      path: '/student'
+      fullPath: '/student'
+      preLoaderRoute: typeof StudentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/owner': {
+      id: '/owner'
+      path: '/owner'
+      fullPath: '/owner'
+      preLoaderRoute: typeof OwnerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/otp': {
+      id: '/otp'
+      path: '/otp'
+      fullPath: '/otp'
+      preLoaderRoute: typeof OtpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +132,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login/student': {
+      id: '/login/student'
+      path: '/login/student'
+      fullPath: '/login/student'
+      preLoaderRoute: typeof LoginStudentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login/owner': {
+      id: '/login/owner'
+      path: '/login/owner'
+      fullPath: '/login/owner'
+      preLoaderRoute: typeof LoginOwnerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  OtpRoute: OtpRoute,
+  OwnerRoute: OwnerRoute,
+  StudentRoute: StudentRoute,
+  LoginOwnerRoute: LoginOwnerRoute,
+  LoginStudentRoute: LoginStudentRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
