@@ -163,15 +163,14 @@ function BookingsPage() {
   const handleResend = async (b: Joined) => {
     try {
       await sendInvoiceWhatsApp({
-        booking_id: b.id,
         booking_code: b.booking_code,
         seat_number: b.seat_number,
-        seat_type: b.seat_type,
-        pass_type: b.pass_type,
-        start_date: b.start_date,
-        end_date: b.end_date,
+        cabin_type: b.seat_type === "ac" ? "AC Cabin" : "Non-AC Cabin",
+        pass_type: b.pass_type === "month" ? "Month Pass" : "Day Pass",
+        start_date: fmt(b.start_date),
+        end_date: fmt(b.end_date),
         amount: Number(b.amount),
-        payment_method: b.payment_method || "—",
+        payment_method: (b.payment_method || "—").toUpperCase(),
         phone: b.student_phone,
       });
       toast.success("Invoice queued to WhatsApp");
