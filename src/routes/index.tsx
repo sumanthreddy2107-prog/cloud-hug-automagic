@@ -3,10 +3,18 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Kaaizens Library — Book your study hall seat" },
-      { name: "description", content: "Reserve AC and Non-AC study cabins at Kaaizens Library. Day and month passes available." },
+      { title: "Kaaizens Library" },
+      { name: "description", content: "Your quiet space to grow — book your study hall seat at Kaaizens Library." },
       { property: "og:title", content: "Kaaizens Library" },
-      { property: "og:description", content: "Book your study hall seat in seconds." },
+      { property: "og:description", content: "Your quiet space to grow." },
+      { property: "og:url", content: "/" },
+    ],
+    links: [
+      { rel: "canonical", href: "/" },
+      {
+        rel: "icon",
+        href: "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>",
+      },
     ],
   }),
   component: Landing,
@@ -14,58 +22,51 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
-          <span className="text-lg font-semibold tracking-tight">Kaaizens Library</span>
-          <span className="text-sm text-muted-foreground">Study Hall · Hyderabad</span>
+    <div
+      className="flex min-h-screen flex-col items-center justify-between px-6 py-10"
+      style={{ backgroundColor: "#0F172A" }}
+    >
+      <div aria-hidden className="h-2" />
+
+      <main className="flex w-full max-w-md flex-1 flex-col items-center justify-center text-center">
+        <div className="text-[5rem] leading-none" aria-hidden>
+          📚
         </div>
-      </header>
 
-      <main className="mx-auto flex max-w-5xl flex-col gap-16 px-6 py-20">
-        <section className="flex flex-col gap-6">
-          <h1 className="text-4xl font-bold leading-tight sm:text-6xl">
-            Your seat in our study hall,{" "}
-            <span className="text-primary">booked in seconds.</span>
-          </h1>
-          <p className="max-w-2xl text-lg text-muted-foreground">
-            110 AC cabins and 100 Non-AC cabins. Pick your spot, pay by UPI or at the counter,
-            and start studying.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              to="/login/student"
-              className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
-            >
-              I'm a Student — Book a seat
-            </Link>
-            <Link
-              to="/login/owner"
-              className="inline-flex items-center justify-center rounded-md border border-border bg-card px-6 py-3 text-sm font-semibold text-foreground transition hover:border-primary"
-            >
-              Owner login
-            </Link>
-          </div>
-        </section>
+        <h1 className="mt-4 text-[3rem] font-bold leading-tight text-white">
+          Kaaizens Library
+        </h1>
 
-        <section className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-lg border border-border bg-card p-6">
-            <div className="text-sm uppercase tracking-wide text-primary">AC Cabin</div>
-            <div className="mt-2 text-3xl font-bold">₹2,000<span className="text-base font-normal text-muted-foreground">/month</span></div>
-            <div className="text-sm text-muted-foreground">or ₹150 / day · 110 cabins</div>
-          </div>
-          <div className="rounded-lg border border-border bg-card p-6">
-            <div className="text-sm uppercase tracking-wide text-primary">Non-AC Cabin</div>
-            <div className="mt-2 text-3xl font-bold">₹1,500<span className="text-base font-normal text-muted-foreground">/month</span></div>
-            <div className="text-sm text-muted-foreground">or ₹100 / day · 100 cabins</div>
-          </div>
-        </section>
+        <p className="mt-2 italic" style={{ color: "#10B981" }}>
+          Your quiet space to grow
+        </p>
+
+        <div
+          className="my-6 h-px w-24"
+          style={{ backgroundColor: "#10B981" }}
+          aria-hidden
+        />
+
+        <div className="flex w-full flex-col gap-4 sm:flex-row sm:justify-center">
+          <Link
+            to="/login/student"
+            className="inline-flex items-center justify-center rounded-xl px-8 py-4 text-base font-bold text-white shadow-md transition hover:opacity-90"
+            style={{ backgroundColor: "#10B981" }}
+          >
+            🎓 Student Login
+          </Link>
+
+          <Link
+            to="/login/owner"
+            className="inline-flex items-center justify-center rounded-xl border-2 border-white bg-transparent px-8 py-4 text-base font-bold text-white transition hover:bg-white hover:text-[#0F172A]"
+          >
+            🔑 Owner Login
+          </Link>
+        </div>
       </main>
 
-      <footer className="border-t border-border">
-        <div className="mx-auto max-w-5xl px-6 py-6 text-sm text-muted-foreground">
-          Need help? WhatsApp +91 9515503335
-        </div>
+      <footer className="pt-8 text-xs text-gray-500">
+        Kaaizens Library © 2026
       </footer>
     </div>
   );
