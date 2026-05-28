@@ -102,14 +102,14 @@ function SettingsPage() {
   if (isLoading) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-3xl font-bold">⚙️ Settings</h1>
+        <h1 className="text-3xl font-bold text-slate-900">⚙️ Settings</h1>
         {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-48 w-full" />)}
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-3xl pb-24">
+    <div className="flex flex-col gap-6 max-w-3xl pb-24 bg-white min-h-screen p-6 rounded-xl">
       <h1 className="text-3xl font-bold">⚙️ Settings</h1>
 
       <Section title="🏛️ Library Information">
@@ -199,8 +199,8 @@ function SettingsPage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border bg-card p-5 shadow-sm">
-      <h2 className="font-semibold text-lg mb-4">{title}</h2>
+    <section className="rounded-xl border bg-white p-5 shadow-sm">
+      <h2 className="font-semibold text-lg mb-4 text-slate-800">{title}</h2>
       {children}
     </section>
   );
