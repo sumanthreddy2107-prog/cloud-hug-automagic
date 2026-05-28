@@ -39,7 +39,7 @@ async function fetchSeats(seatType: SeatType): Promise<Seat[]> {
   const { data, error } = await supabase
     .from("seats")
     .select("id,seat_number,seat_type,status")
-    .eq("seat_type", seatType)
+    .eq("seat_type", seatType === "ac" ? "AC" : "NAC")
     .order("seat_number");
   if (error) throw error;
   return (data ?? []) as Seat[];
@@ -61,7 +61,11 @@ function SeatsPage() {
 
   const seatType = draft?.seatType;
 
-  const { data: seats, isLoading, refetch } = useQuery({
+  const {
+    data: seats,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["seats", seatType],
     queryFn: () => fetchSeats(seatType!),
     enabled: !!seatType,
@@ -72,21 +76,14 @@ function SeatsPage() {
     if (!seatType) return;
     const channel = supabase
       .channel(`seats-${seatType}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "seats" },
-        () => refetch(),
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "seats" }, () => refetch())
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
   }, [seatType, refetch]);
 
-  const vacantCount = useMemo(
-    () => seats?.filter((s) => s.status === "vacant").length ?? 0,
-    [seats],
-  );
+  const vacantCount = useMemo(() => seats?.filter((s) => s.status === "vacant").length ?? 0, [seats]);
 
   const selectedSeat = seats?.find((s) => s.id === selectedId) ?? null;
 
@@ -200,17 +197,13 @@ function SeatsPage() {
         <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-white px-6 py-4 shadow-lg animate-in slide-in-from-bottom duration-300">
           <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-slate-700">
-              <span className="font-semibold text-emerald-600">
-                ✓ {selectedSeat.seat_number} selected
-              </span>
+              <span className="font-semibold text-emerald-600">✓ {selectedSeat.seat_number} selected</span>
               <span className="text-slate-400"> | </span>
               <span>{cabinShort}</span>
               <span className="text-slate-400"> | </span>
               <span>{passLabel}</span>
               <span className="text-slate-400"> | </span>
-              <span className="font-semibold">
-                ₹{draft.amount.toLocaleString("en-IN")}
-              </span>
+              <span className="font-semibold">₹{draft.amount.toLocaleString("en-IN")}</span>
             </div>
             <button
               onClick={handleConfirm}
