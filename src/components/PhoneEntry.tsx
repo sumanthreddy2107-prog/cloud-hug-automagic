@@ -9,67 +9,83 @@ export function PhoneEntry({ role }: { role: "student" | "owner" }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const valid = /^\d{10}$/.test(digits);
+  const valid = /^[0-9]{10}$/.test(digits);
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     if (!valid || loading) return;
     setLoading(true);
     setError(null);
     const res = await sendOtp({ phone: digits, role });
     setLoading(false);
-    if (!res.ok) {
-      setError(res.error === "Unauthorised" ? "Unauthorised" : "Could not send OTP. Please try again.");
-      return;
+    if (res.ok) {
+      navigate({ to: "/otp", search: { phone: digits, role } });
+    } else {
+      setError(res.error);
     }
-    navigate({
-      to: "/otp",
-      search: { phone: digits, role, devOtp: res.devOtp },
-    });
   };
 
   return (
-    <div className="min-h-screen bg-background px-6 py-6">
-      <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-5 w-5" />
-      </Link>
-      <div className="mx-auto mt-8 flex max-w-md flex-col items-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#25D366] text-3xl">
-          💬
-        </div>
-        <h1 className="mt-6 text-center text-2xl font-bold">Enter your WhatsApp number</h1>
-        <p className="mt-2 text-center text-sm text-muted-foreground">
-          We&apos;ll send a 6-digit OTP to your WhatsApp
-        </p>
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-10">
+      {/* Hidden reCAPTCHA container required by Firebase */}
+      <div id="recaptcha-container" />
 
-        <form onSubmit={onSubmit} className="mt-8 flex w-full flex-col gap-4">
-          <div className="flex items-stretch overflow-hidden rounded-md border border-border bg-input focus-within:border-primary">
-            <span className="flex items-center px-4 text-sm font-medium text-muted-foreground border-r border-border">
+      <div className="w-full max-w-md flex flex-col gap-6">
+        <Link
+          to={role === "owner" ? "/login/owner" : "/"}
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground self-start"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
+
+        {/* Phone icon */}
+        <div className="flex justify-center">
+          <div className="w-20 h-20 rounded-full bg-emerald-500 flex items-center justify-center text-4xl">
+            📱
+          </div>
+        </div>
+
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-foreground">
+            Enter your phone number
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            We'll send a 6-digit OTP via SMS to verify your number
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-0 rounded-md border border-border bg-input overflow-hidden">
+            <span className="px-4 py-3 text-foreground font-medium border-r border-border bg-muted">
               +91
             </span>
             <input
+              type="tel"
               inputMode="numeric"
-              autoFocus
-              placeholder="9XXXXXXXXX"
+              maxLength={10}
+              placeholder="Enter 10-digit number"
               value={digits}
               onChange={(e) => setDigits(e.target.value.replace(/\D/g, "").slice(0, 10))}
-              className="flex-1 bg-transparent px-3 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none"
+              onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }}
+              className="flex-1 px-4 py-3 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none"
             />
           </div>
 
           {error && (
-            <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
+            <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error}
+            </p>
           )}
 
           <button
-            type="submit"
+            type="button"
             disabled={!valid || loading}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+            onClick={handleSubmit}
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground transition-colors"
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {loading ? "Sending..." : "Send OTP on WhatsApp →"}
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+            Send OTP via SMS →
           </button>
-        </form>
+        </div>
       </div>
     </div>
   );
