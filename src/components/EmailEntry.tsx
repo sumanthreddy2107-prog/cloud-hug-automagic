@@ -1,82 +1,108 @@
 import { useState } from "react";
-import { useNavigate, Link } from "@tanstack/react-router";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, User } from "lucide-react";
+import { toast } from "sonner";
 
 export function EmailEntry() {
-  const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+    const navigate = useNavigate();
+    const [name, setName] = useState("");
+    const [phone, setPhone] = useState("");
+    const [loading, setLoading] = useState(false);
 
-  const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!name.trim() || !phone.trim()) {
+                toast.error("Please enter your name and phone number");
+                return;
+        }
+        if (phone.length !== 10 || !/^[0-9]+$/.test(phone)) {
+                toast.error("Please enter a valid 10-digit phone number");
+                return;
+        }
+        setLoading(true);
+        try {
+                const { data: existing } = await supabase
+                  .from("students")
+                  .select("id")
+                  .eq("phone", phone)
+                  .maybeSingle();
 
-  const handleSubmit = async () => {
-    if (!valid || loading) return;
-    setLoading(true);
-    setError(null);
+          if (!existing) {
+                    const { error } = await supabase
+                      .from("students")
+                      .insert({ name: name.trim(), phone });
+                    if (error) throw error;
+          }
 
-    const { error: otpErr } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-    });
-    setLoading(false);
-    if (otpErr) {
-      setError(otpErr.message);
-      return;
-    }
-    navigate({ to: "/otp", search: { email: email.trim(), role: "student" } });
+          localStorage.setItem("student_name", name.trim());
+                localStorage.setItem("student_phone", phone);
+                toast.success(`Welcome, ${name.trim()}!`);
+                navigate({ to: "/student" });
+        } catch (err: any) {
+                toast.error(err.message || "Something went wrong");
+        } finally {
+                setLoading(false);
+        }
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-10">
-      <div className="w-full max-w-md flex flex-col gap-6">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground self-start"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-
-        <div className="flex justify-center">
-          <div className="w-20 h-20 rounded-full bg-emerald-500 flex items-center justify-center text-4xl">
-            ✉️
-          </div>
-        </div>
-
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground">Enter your email</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            We'll send a 6-digit OTP to your email to verify it
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <input
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }}
-            className="w-full rounded-md border border-border bg-input px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
-          />
-
-          {error && (
-            <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
-          )}
-
-          <button
-            type="button"
-            disabled={!valid || loading}
-            onClick={handleSubmit}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-500 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground transition-colors"
-          >
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            Send OTP via Email →
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+        <div className="min-h-screen bg-[#0F172A] flex items-center justify-center p-4">
+              <div className="w-full max-w-md">
+                      <button
+                                  onClick={() => navigate({ to: "/" })}
+                                  className="flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors"
+                                >
+                                <ArrowLeft className="w-4 h-4" /> Back
+                      </button>button>
+                      <div className="flex flex-col items-center mb-8">
+                                <div className="w-16 h-16 rounded-full bg-emerald-500 flex items-center justify-center mb-4">
+                                            <User className="w-8 h-8 text-white" />
+                                </div>div>
+                                <h1 className="text-2xl font-bold text-white">Student Login</h1>h1>
+                                <p className="text-gray-400 mt-1">Enter your details to book a seat</p>p>
+                      </div>div>
+                      <form onSubmit={handleSubmit} className="space-y-5">
+                                <div className="space-y-2">
+                                            <Label className="text-gray-300">Full Name</Label>Label>
+                                            <Input
+                                                            type="text"
+                                                            placeholder="Enter your full name"
+                                                            value={name}
+                                                            onChange={(e) => setName(e.target.value)}
+                                                            className="bg-white/10 border-white/20 text-white placeholder:text-gray-500 h-12"
+                                                            disabled={loading}
+                                                          />
+                                </div>div>
+                                <div className="space-y-2">
+                                            <Label className="text-gray-300">Phone Number</Label>Label>
+                                            <div className="flex gap-2">
+                                                          <div className="flex items-center bg-white/10 border border-white/20 rounded-md px-3 text-gray-400 text-sm">
+                                                                          +91
+                                                          </div>div>
+                                                          <Input
+                                                                            type="tel"
+                                                                            placeholder="10-digit mobile number"
+                                                                            value={phone}
+                                                                            onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                                                                            className="bg-white/10 border-white/20 text-white placeholder:text-gray-500 h-12 flex-1"
+                                                                            disabled={loading}
+                                                                            maxLength={10}
+                                                                          />
+                                            </div>div>
+                                </div>div>
+                                <Button
+                                              type="submit"
+                                              disabled={loading}
+                                              className="w-full h-12 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-base mt-2"
+                                            >
+                                  {loading ? "Please wait..." : "Continue to Book Seat →"}
+                                </Button>Button>
+                      </form>form>
+              </div>div>
+        </div>div>
+      );
+}</div>
