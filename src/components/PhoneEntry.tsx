@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "@tanstack/react-router";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { isOwnerPhone, toE164India } from "@/lib/auth-helpers";
+import { isOwnerPhone } from "@/lib/auth-helpers";
 
 export function PhoneEntry({ role }: { role: "student" | "owner" }) {
   const navigate = useNavigate();
@@ -27,7 +27,7 @@ export function PhoneEntry({ role }: { role: "student" | "owner" }) {
     }
 
     const { error: otpErr } = await supabase.auth.signInWithOtp({
-      phone: toE164India(digits),
+      phone: "+91" + digits,
     });
     setLoading(false);
     if (otpErr) {
