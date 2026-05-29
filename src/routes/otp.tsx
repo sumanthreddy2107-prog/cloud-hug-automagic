@@ -7,14 +7,15 @@ import { toE164India } from "@/lib/auth-helpers";
 
 export const Route = createFileRoute("/otp")({
   validateSearch: (search: Record<string, unknown>) => ({
-    phone: String(search.phone ?? ""),
+    phone: search.phone ? String(search.phone) : "",
+    email: search.email ? String(search.email) : "",
     role: (search.role === "owner" ? "owner" : "student") as "student" | "owner",
   }),
   component: OtpPage,
 });
 
 function OtpPage() {
-  const { phone, role } = Route.useSearch();
+  const { phone, email, role } = Route.useSearch();
   const navigate = useNavigate();
   const { refresh, logout } = useAuth();
   const [digits, setDigits] = useState<string[]>(Array(6).fill(""));
@@ -27,6 +28,9 @@ function OtpPage() {
   const [name, setName] = useState("");
   const [nameLoading, setNameLoading] = useState(false);
   const refs = useRef<Array<HTMLInputElement | null>>([]);
+
+  const useEmail = role === "student";
+  const destinationLabel = useEmail ? email : `+91${phone}`;
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -73,11 +77,9 @@ function OtpPage() {
     setLoading(true);
     setError(null);
 
-    const { data, error: verifyErr } = await supabase.auth.verifyOtp({
-      phone: toE164India(phone),
-      token: code,
-      type: "sms",
-    });
+    const { data, error: verifyErr } = useEmail
+      ? await supabase.auth.verifyOtp({ email, token: code, type: "email" })
+      : await supabase.auth.verifyOtp({ phone: toE164India(phone), token: code, type: "sms" });
 
     if (verifyErr || !data.session || !data.user) {
       setLoading(false);
@@ -85,14 +87,12 @@ function OtpPage() {
       return;
     }
 
-    // Determine role
     const { data: roles } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", data.user.id);
     const isOwner = (roles ?? []).some((r) => r.role === "owner");
 
-    // Enforce role-from-login-page match
     if (role === "owner" && !isOwner) {
       await logout();
       setLoading(false);
@@ -113,7 +113,6 @@ function OtpPage() {
       return;
     }
 
-    // Student: load student row (trigger created it on first signup)
     const { data: student } = await supabase
       .from("students")
       .select("id,name")
@@ -141,7 +140,9 @@ function OtpPage() {
     if (countdown > 0 || resending) return;
     setResending(true);
     setError(null);
-    const { error: e } = await supabase.auth.signInWithOtp({ phone: "+91" + phone.replace(/\D/g, "").slice(-10) });
+    const { error: e } = useEmail
+      ? await supabase.auth.signInWithOtp({ email })
+      : await supabase.auth.signInWithOtp({ phone: "+91" + phone.replace(/\D/g, "").slice(-10) });
     setResending(false);
     if (e) {
       setError(e.message);
@@ -171,13 +172,13 @@ function OtpPage() {
 
   return (
     <div className="min-h-screen bg-background px-6 py-6">
-      <Link to="/login/student" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground">
+      <Link to={role === "owner" ? "/login/owner" : "/login/student"} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-5 w-5" />
       </Link>
       <div className="mx-auto mt-8 flex max-w-md flex-col">
         <h1 className="text-2xl font-bold">Verify OTP</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Enter the 6-digit code sent to +91{phone}
+          Enter the 6-digit code sent to {destinationLabel}
         </p>
 
         <div className="mt-6 flex justify-between gap-2">
