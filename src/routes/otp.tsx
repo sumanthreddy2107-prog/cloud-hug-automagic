@@ -2,29 +2,28 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { createStudent, sendOtp, verifyOtp } from "@/lib/otp";
+import { supabase } from "@/integrations/supabase/client";
+import { toE164India } from "@/lib/auth-helpers";
 
 export const Route = createFileRoute("/otp")({
   validateSearch: (search: Record<string, unknown>) => ({
     phone: String(search.phone ?? ""),
     role: (search.role === "owner" ? "owner" : "student") as "student" | "owner",
-    devOtp: search.devOtp ? String(search.devOtp) : undefined,
   }),
   component: OtpPage,
 });
 
 function OtpPage() {
-  const { phone, role, devOtp } = Route.useSearch();
+  const { phone, role } = Route.useSearch();
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { refresh, logout } = useAuth();
   const [digits, setDigits] = useState<string[]>(Array(6).fill(""));
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(30);
   const [resending, setResending] = useState(false);
-  const [currentDevOtp, setCurrentDevOtp] = useState<string | undefined>(devOtp);
   const [showNameModal, setShowNameModal] = useState(false);
-  const [verifiedPhone, setVerifiedPhone] = useState("");
+  const [pendingStudentId, setPendingStudentId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [nameLoading, setNameLoading] = useState(false);
   const refs = useRef<Array<HTMLInputElement | null>>([]);
@@ -54,7 +53,6 @@ function OtpPage() {
       setDigit(i, c);
       if (i < 5) refs.current[i + 1]?.focus();
     } else {
-      // paste
       const chars = c.slice(0, 6).split("");
       const next = Array(6).fill("");
       chars.forEach((ch, idx) => (next[idx] = ch));
@@ -74,23 +72,68 @@ function OtpPage() {
     if (!filled || loading) return;
     setLoading(true);
     setError(null);
-    const res = await verifyOtp({ phone, code });
-    setLoading(false);
-    if (!res.ok) {
-      setError(res.error);
+
+    const { data, error: verifyErr } = await supabase.auth.verifyOtp({
+      phone: toE164India(phone),
+      token: code,
+      type: "sms",
+    });
+
+    if (verifyErr || !data.session || !data.user) {
+      setLoading(false);
+      setError(verifyErr?.message ?? "Invalid OTP. Please try again.");
       return;
     }
-    if (res.role === "owner") {
-      login({ phone: res.phone }, "owner");
+
+    // Determine role
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", data.user.id);
+    const isOwner = (roles ?? []).some((r) => r.role === "owner");
+
+    // Enforce role-from-login-page match
+    if (role === "owner" && !isOwner) {
+      await logout();
+      setLoading(false);
+      setError("This number is not the owner. Please use the student login.");
+      return;
+    }
+    if (role === "student" && isOwner) {
+      await logout();
+      setLoading(false);
+      setError("This is the owner account. Please use the owner login.");
+      return;
+    }
+
+    if (isOwner) {
+      await refresh();
+      setLoading(false);
       navigate({ to: "/owner/dashboard" });
       return;
     }
-    if (res.isNewUser) {
-      setVerifiedPhone(res.phone);
+
+    // Student: load student row (trigger created it on first signup)
+    const { data: student } = await supabase
+      .from("students")
+      .select("id,name")
+      .eq("user_id", data.user.id)
+      .maybeSingle();
+
+    setLoading(false);
+
+    if (!student) {
+      setError("Could not load your student profile. Please try again.");
+      return;
+    }
+
+    if (!student.name || student.name.trim().length === 0) {
+      setPendingStudentId(student.id);
       setShowNameModal(true);
       return;
     }
-    login({ phone: res.phone, studentId: res.studentId, name: res.name }, "student");
+
+    await refresh();
     navigate({ to: "/student/home" });
   };
 
@@ -98,30 +141,32 @@ function OtpPage() {
     if (countdown > 0 || resending) return;
     setResending(true);
     setError(null);
-    const res = await sendOtp({ phone, role });
+    const { error: e } = await supabase.auth.signInWithOtp({ phone: toE164India(phone) });
     setResending(false);
-    if (res.ok) {
-      setCurrentDevOtp(res.devOtp);
+    if (e) {
+      setError(e.message);
+    } else {
       setCountdown(30);
       setDigits(Array(6).fill(""));
-    } else {
-      setError("Could not resend OTP.");
     }
   };
 
   const onSubmitName = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = name.trim();
-    if (trimmed.length < 1 || nameLoading) return;
+    if (trimmed.length < 1 || nameLoading || !pendingStudentId) return;
     setNameLoading(true);
-    try {
-      const created = await createStudent(verifiedPhone, trimmed);
-      login({ phone: verifiedPhone, studentId: created.id, name: created.name }, "student");
-      navigate({ to: "/student/home" });
-    } catch {
+    const { error: upErr } = await supabase
+      .from("students")
+      .update({ name: trimmed })
+      .eq("id", pendingStudentId);
+    if (upErr) {
       setError("Could not save name. Try again.");
       setNameLoading(false);
+      return;
     }
+    await refresh();
+    navigate({ to: "/student/home" });
   };
 
   return (
@@ -135,20 +180,11 @@ function OtpPage() {
           Enter the 6-digit code sent to +91{phone}
         </p>
 
-        {currentDevOtp && (
-          <div className="mt-4 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-            <span className="font-semibold">Dev Mode OTP:</span>{" "}
-            <span className="font-mono tracking-widest text-foreground">{currentDevOtp}</span>
-          </div>
-        )}
-
         <div className="mt-6 flex justify-between gap-2">
           {digits.map((d, i) => (
             <input
               key={i}
-              ref={(el) => {
-                refs.current[i] = el;
-              }}
+              ref={(el) => { refs.current[i] = el; }}
               inputMode="numeric"
               maxLength={6}
               value={d}

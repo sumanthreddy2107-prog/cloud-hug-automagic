@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "@tanstack/react-router";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { sendOtp } from "@/lib/otp";
+import { supabase } from "@/integrations/supabase/client";
+import { isOwnerPhone, toE164India } from "@/lib/auth-helpers";
 
 export function PhoneEntry({ role }: { role: "student" | "owner" }) {
   const navigate = useNavigate();
@@ -15,20 +16,29 @@ export function PhoneEntry({ role }: { role: "student" | "owner" }) {
     if (!valid || loading) return;
     setLoading(true);
     setError(null);
-    const res = await sendOtp({ phone: digits, role });
-    setLoading(false);
-    if (res.ok) {
-      navigate({ to: "/otp", search: { phone: digits, role } });
-    } else {
-      setError(res.error);
+
+    if (role === "owner") {
+      const ok = await isOwnerPhone(digits);
+      if (!ok) {
+        setLoading(false);
+        setError("This phone number is not authorised as the owner.");
+        return;
+      }
     }
+
+    const { error: otpErr } = await supabase.auth.signInWithOtp({
+      phone: toE164India(digits),
+    });
+    setLoading(false);
+    if (otpErr) {
+      setError(otpErr.message);
+      return;
+    }
+    navigate({ to: "/otp", search: { phone: digits, role } });
   };
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-10">
-      {/* Hidden reCAPTCHA container required by Firebase */}
-      <div id="recaptcha-container" />
-
       <div className="w-full max-w-md flex flex-col gap-6">
         <Link
           to={role === "owner" ? "/login/owner" : "/"}
@@ -37,7 +47,6 @@ export function PhoneEntry({ role }: { role: "student" | "owner" }) {
           <ArrowLeft className="h-5 w-5" />
         </Link>
 
-        {/* Phone icon */}
         <div className="flex justify-center">
           <div className="w-20 h-20 rounded-full bg-emerald-500 flex items-center justify-center text-4xl">
             📱
@@ -45,9 +54,7 @@ export function PhoneEntry({ role }: { role: "student" | "owner" }) {
         </div>
 
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground">
-            Enter your phone number
-          </h1>
+          <h1 className="text-2xl font-bold text-foreground">Enter your phone number</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             We'll send a 6-digit OTP via SMS to verify your number
           </p>
@@ -71,9 +78,7 @@ export function PhoneEntry({ role }: { role: "student" | "owner" }) {
           </div>
 
           {error && (
-            <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {error}
-            </p>
+            <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
           )}
 
           <button
