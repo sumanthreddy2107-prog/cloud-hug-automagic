@@ -72,7 +72,6 @@ function PaymentPage() {
     setSubmitting(method);
     try {
       const res = await confirmBooking({
-        student_id: user.studentId,
         seat_id: draft.seatId,
         pass_type: draft.passType,
         start_date: draft.startDate,
