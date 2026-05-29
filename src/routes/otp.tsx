@@ -141,7 +141,7 @@ function OtpPage() {
     if (countdown > 0 || resending) return;
     setResending(true);
     setError(null);
-    const { error: e } = await supabase.auth.signInWithOtp({ phone: toE164India(phone) });
+    const { error: e } = await supabase.auth.signInWithOtp({ phone: "+91" + phone.replace(/\D/g, "").slice(-10) });
     setResending(false);
     if (e) {
       setError(e.message);
