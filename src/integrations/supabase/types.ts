@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      authorized_owners: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string | null
+          phone: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string | null
+          phone: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string | null
+          phone?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           amount: number
@@ -120,6 +144,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      otp_requests: {
+        Row: {
+          attempts: number
+          created_at: string
+          expires_at: string
+          id: string
+          otp_hash: string
+          phone: string
+          role: string
+          verified: boolean
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          expires_at: string
+          id?: string
+          otp_hash: string
+          phone: string
+          role: string
+          verified?: boolean
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          expires_at?: string
+          id?: string
+          otp_hash?: string
+          phone?: string
+          role?: string
+          verified?: boolean
+        }
+        Relationships: []
       }
       seats: {
         Row: {
