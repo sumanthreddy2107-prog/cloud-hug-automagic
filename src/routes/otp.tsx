@@ -1,36 +1,33 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { ArrowLeft, Loader2, Sparkles } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { toE164India } from "@/lib/auth-helpers";
+import { sendOtp, verifyOtp } from "@/lib/otp.functions";
 
 export const Route = createFileRoute("/otp")({
   validateSearch: (search: Record<string, unknown>) => ({
     phone: search.phone ? String(search.phone) : "",
-    email: search.email ? String(search.email) : "",
     role: (search.role === "owner" ? "owner" : "student") as "student" | "owner",
+    devOtp: search.devOtp ? String(search.devOtp) : "",
   }),
   component: OtpPage,
 });
 
 function OtpPage() {
-  const { phone, email, role } = Route.useSearch();
+  const { phone, role, devOtp } = Route.useSearch();
   const navigate = useNavigate();
-  const { refresh, logout } = useAuth();
+  const { refresh } = useAuth();
+  const send = useServerFn(sendOtp);
+  const verify = useServerFn(verifyOtp);
   const [digits, setDigits] = useState<string[]>(Array(6).fill(""));
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(30);
   const [resending, setResending] = useState(false);
-  const [showNameModal, setShowNameModal] = useState(false);
-  const [pendingStudentId, setPendingStudentId] = useState<string | null>(null);
-  const [name, setName] = useState("");
-  const [nameLoading, setNameLoading] = useState(false);
+  const [devOtpShown, setDevOtpShown] = useState(devOtp);
   const refs = useRef<Array<HTMLInputElement | null>>([]);
-
-  const useEmail = role === "student";
-  const destinationLabel = useEmail ? email : `+91${phone}`;
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -49,10 +46,7 @@ function OtpPage() {
 
   const handleChange = (i: number, v: string) => {
     const c = v.replace(/\D/g, "");
-    if (!c) {
-      setDigit(i, "");
-      return;
-    }
+    if (!c) { setDigit(i, ""); return; }
     if (c.length === 1) {
       setDigit(i, c);
       if (i < 5) refs.current[i + 1]?.focus();
@@ -61,125 +55,85 @@ function OtpPage() {
       const next = Array(6).fill("");
       chars.forEach((ch, idx) => (next[idx] = ch));
       setDigits(next);
-      const focusIdx = Math.min(chars.length, 5);
-      refs.current[focusIdx]?.focus();
+      refs.current[Math.min(chars.length, 5)]?.focus();
     }
   };
 
   const handleKeyDown = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !digits[i] && i > 0) {
-      refs.current[i - 1]?.focus();
-    }
+    if (e.key === "Backspace" && !digits[i] && i > 0) refs.current[i - 1]?.focus();
   };
 
   const onVerify = async () => {
     if (!filled || loading) return;
     setLoading(true);
     setError(null);
-
-    const { data, error: verifyErr } = useEmail
-      ? await supabase.auth.verifyOtp({ email, token: code, type: "email" })
-      : await supabase.auth.verifyOtp({ phone: toE164India(phone), token: code, type: "sms" });
-
-    if (verifyErr || !data.session || !data.user) {
-      setLoading(false);
-      setError(verifyErr?.message ?? "Invalid OTP. Please try again.");
-      return;
-    }
-
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", data.user.id);
-    const isOwner = (roles ?? []).some((r) => r.role === "owner");
-
-    if (role === "owner" && !isOwner) {
-      await logout();
-      setLoading(false);
-      setError("This number is not the owner. Please use the student login.");
-      return;
-    }
-    if (role === "student" && isOwner) {
-      await logout();
-      setLoading(false);
-      setError("This is the owner account. Please use the owner login.");
-      return;
-    }
-
-    if (isOwner) {
+    try {
+      const res = await verify({ data: { phone, otp: code, role } });
+      if (!res.ok) {
+        setError(res.error);
+        setLoading(false);
+        return;
+      }
+      const { error: setErr } = await supabase.auth.setSession({
+        access_token: res.access_token,
+        refresh_token: res.refresh_token,
+      });
+      if (setErr) {
+        setError(setErr.message);
+        setLoading(false);
+        return;
+      }
       await refresh();
       setLoading(false);
-      navigate({ to: "/owner/dashboard" });
-      return;
+      navigate({ to: role === "owner" ? "/owner/dashboard" : "/student/home" });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Verification failed");
+      setLoading(false);
     }
-
-    const { data: student } = await supabase
-      .from("students")
-      .select("id,name")
-      .eq("user_id", data.user.id)
-      .maybeSingle();
-
-    setLoading(false);
-
-    if (!student) {
-      setError("Could not load your student profile. Please try again.");
-      return;
-    }
-
-    if (!student.name || student.name.trim().length === 0) {
-      setPendingStudentId(student.id);
-      setShowNameModal(true);
-      return;
-    }
-
-    await refresh();
-    navigate({ to: "/student/home" });
   };
 
   const onResend = async () => {
     if (countdown > 0 || resending) return;
     setResending(true);
     setError(null);
-    const { error: e } = useEmail
-      ? await supabase.auth.signInWithOtp({ email })
-      : await supabase.auth.signInWithOtp({ phone: "+91" + phone.replace(/\D/g, "").slice(-10) });
-    setResending(false);
-    if (e) {
-      setError(e.message);
-    } else {
-      setCountdown(30);
-      setDigits(Array(6).fill(""));
+    try {
+      const res = await send({ data: { phone, role } });
+      if (!res.ok) {
+        setError(res.error);
+      } else {
+        setCountdown(30);
+        setDigits(Array(6).fill(""));
+        if ("dev" in res && res.dev) setDevOtpShown(res.otp);
+      }
+    } finally {
+      setResending(false);
     }
-  };
-
-  const onSubmitName = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = name.trim();
-    if (trimmed.length < 1 || nameLoading || !pendingStudentId) return;
-    setNameLoading(true);
-    const { error: upErr } = await supabase
-      .from("students")
-      .update({ name: trimmed })
-      .eq("id", pendingStudentId);
-    if (upErr) {
-      setError("Could not save name. Try again.");
-      setNameLoading(false);
-      return;
-    }
-    await refresh();
-    navigate({ to: "/student/home" });
   };
 
   return (
-    <div className="min-h-screen bg-background px-6 py-6">
-      <Link to={role === "owner" ? "/login/owner" : "/login/student"} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-5 w-5" />
+    <div className="min-h-screen bg-[#0F172A] text-white px-6 py-6">
+      <Link
+        to={role === "owner" ? "/login/owner" : "/login/student"}
+        className="inline-flex items-center gap-2 text-gray-400 hover:text-white"
+      >
+        <ArrowLeft className="h-5 w-5" /> Back
       </Link>
+
       <div className="mx-auto mt-8 flex max-w-md flex-col">
         <h1 className="text-2xl font-bold">Verify OTP</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Enter the 6-digit code sent to {destinationLabel}
+        <p className="mt-2 text-sm text-gray-400">
+          Enter the 6-digit code sent to +91 {phone}
         </p>
+
+        {devOtpShown && (
+          <div className="mt-4 flex items-center gap-3 rounded-md border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-amber-200">
+            <Sparkles className="h-4 w-4 shrink-0" />
+            <div className="text-sm">
+              <div className="font-semibold">Dev mode</div>
+              <div>Your OTP is <span className="font-mono text-lg tracking-widest">{devOtpShown}</span></div>
+            </div>
+          </div>
+        )}
 
         <div className="mt-6 flex justify-between gap-2">
           {digits.map((d, i) => (
@@ -191,26 +145,26 @@ function OtpPage() {
               value={d}
               onChange={(e) => handleChange(i, e.target.value)}
               onKeyDown={(e) => handleKeyDown(i, e)}
-              className="h-12 w-full rounded-md border border-border bg-input text-center text-lg font-semibold text-foreground focus:border-primary focus:outline-none"
+              className="h-12 w-full rounded-md border border-white/20 bg-white/10 text-center text-lg font-semibold text-white focus:border-emerald-400 focus:outline-none"
             />
           ))}
         </div>
 
         {error && (
-          <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
+          <p className="mt-4 rounded-md bg-red-500/10 border border-red-500/30 px-3 py-2 text-sm text-red-300">{error}</p>
         )}
 
         <button
           type="button"
           disabled={!filled || loading}
           onClick={onVerify}
-          className="mt-6 inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+          className="mt-6 inline-flex items-center justify-center gap-2 rounded-md bg-emerald-500 hover:bg-emerald-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-gray-500"
         >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {loading && <Loader2 className="h-4 w-4 animate-spin" />}
           Verify →
         </button>
 
-        <div className="mt-4 text-center text-sm text-muted-foreground">
+        <div className="mt-4 text-center text-sm text-gray-400">
           {countdown > 0 ? (
             <>Resend OTP in {countdown}s</>
           ) : (
@@ -218,38 +172,13 @@ function OtpPage() {
               type="button"
               onClick={onResend}
               disabled={resending}
-              className="text-primary hover:underline disabled:opacity-50"
+              className="text-emerald-400 hover:underline disabled:opacity-50"
             >
               {resending ? "Resending..." : "Resend OTP"}
             </button>
           )}
         </div>
       </div>
-
-      {showNameModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 text-slate-900 shadow-xl">
-            <h2 className="text-xl font-bold">Welcome! What&apos;s your name?</h2>
-            <form onSubmit={onSubmitName} className="mt-4 flex flex-col gap-4">
-              <input
-                autoFocus
-                placeholder="Enter your full name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="rounded-md border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none"
-              />
-              <button
-                type="submit"
-                disabled={!name.trim() || nameLoading}
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {nameLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Get Started →
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

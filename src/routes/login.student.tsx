@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { EmailEntry } from "@/components/EmailEntry";
+import { PhoneEntry } from "@/components/PhoneEntry";
 
 export const Route = createFileRoute("/login/student")({
-      component: () => <EmailEntry />,
+  component: () => <PhoneEntry role="student" />,
 });

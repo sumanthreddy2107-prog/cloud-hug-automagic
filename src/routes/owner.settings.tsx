@@ -5,9 +5,6 @@ import { toast } from "sonner";
 import { Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/owner/settings")({
@@ -22,6 +19,10 @@ const KEYS = [
   "owner_phone",
 ] as const;
 type Key = (typeof KEYS)[number];
+
+// High-contrast input/textarea styles for dark theme
+const FIELD =
+  "w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-white placeholder:text-slate-400 focus:border-sky-400 focus:outline-none";
 
 function SettingsPage() {
   const [form, setForm] = useState<Record<Key, string>>(() =>
@@ -102,86 +103,86 @@ function SettingsPage() {
   if (isLoading) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-3xl font-bold text-slate-900">⚙️ Settings</h1>
-        {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-48 w-full" />)}
+        <h1 className="text-3xl font-bold text-white">⚙️ Settings</h1>
+        {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-48 w-full bg-white/10" />)}
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-3xl pb-24 bg-white min-h-screen p-6 rounded-xl">
-      <h1 className="text-3xl font-bold">⚙️ Settings</h1>
+    <div className="flex flex-col gap-6 max-w-3xl pb-24 bg-[#0F172A] min-h-screen p-6 rounded-xl text-white">
+      <h1 className="text-3xl font-bold text-white">⚙️ Settings</h1>
 
       <Section title="🏛️ Library Information">
         <Field label="Library Name">
-          <Input value={form.hall_name} onChange={(e) => set("hall_name", e.target.value)} maxLength={100} />
+          <input className={FIELD} value={form.hall_name} onChange={(e) => set("hall_name", e.target.value)} maxLength={100} />
         </Field>
         <Field label="Contact Phone">
-          <Input value={form.hall_phone} onChange={(e) => set("hall_phone", e.target.value)} maxLength={20} />
+          <input className={FIELD} value={form.hall_phone} onChange={(e) => set("hall_phone", e.target.value)} maxLength={20} />
         </Field>
         <Field label="Address">
-          <Textarea value={form.hall_address} onChange={(e) => set("hall_address", e.target.value)} rows={3} maxLength={500} placeholder="Enter address" />
+          <textarea className={FIELD} value={form.hall_address} onChange={(e) => set("hall_address", e.target.value)} rows={3} maxLength={500} placeholder="Enter address" />
         </Field>
       </Section>
 
       <Section title="💰 Pricing (in ₹)">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="AC Month Pass">
-            <Input type="number" min={0} value={form.ac_month_price} onChange={(e) => set("ac_month_price", e.target.value)} />
+            <input className={FIELD} type="number" min={0} value={form.ac_month_price} onChange={(e) => set("ac_month_price", e.target.value)} />
           </Field>
           <Field label="AC Day Pass">
-            <Input type="number" min={0} value={form.ac_day_price} onChange={(e) => set("ac_day_price", e.target.value)} />
+            <input className={FIELD} type="number" min={0} value={form.ac_day_price} onChange={(e) => set("ac_day_price", e.target.value)} />
           </Field>
           <Field label="Non-AC Month Pass">
-            <Input type="number" min={0} value={form.nonac_month_price} onChange={(e) => set("nonac_month_price", e.target.value)} />
+            <input className={FIELD} type="number" min={0} value={form.nonac_month_price} onChange={(e) => set("nonac_month_price", e.target.value)} />
           </Field>
           <Field label="Non-AC Day Pass">
-            <Input type="number" min={0} value={form.nonac_day_price} onChange={(e) => set("nonac_day_price", e.target.value)} />
+            <input className={FIELD} type="number" min={0} value={form.nonac_day_price} onChange={(e) => set("nonac_day_price", e.target.value)} />
           </Field>
         </div>
-        <p className="text-xs text-muted-foreground mt-2">Prices apply to new bookings only</p>
+        <p className="text-xs text-slate-300 mt-2">Prices apply to new bookings only</p>
       </Section>
 
       <Section title="📱 Payment QR Code">
         <div className="flex items-start gap-4 flex-wrap">
           {form.qr_image_url ? (
-            <img src={form.qr_image_url} alt="QR" className="w-[120px] h-[120px] object-contain border rounded-md bg-white" />
+            <img src={form.qr_image_url} alt="QR" className="w-[120px] h-[120px] object-contain border border-white/20 rounded-md bg-white" />
           ) : (
-            <div className="w-[120px] h-[120px] border rounded-md flex items-center justify-center text-xs text-muted-foreground bg-muted">No QR</div>
+            <div className="w-[120px] h-[120px] border border-white/20 rounded-md flex items-center justify-center text-xs text-slate-300 bg-white/5">No QR</div>
           )}
           <div className="flex flex-col gap-2">
             <input ref={fileRef} type="file" accept="image/jpeg,image/jpg,image/png" className="hidden" onChange={handleUpload} />
-            <Button type="button" variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading}>
+            <Button type="button" variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading} className="bg-white/10 text-white border-white/20 hover:bg-white/20 hover:text-white">
               <Upload className="w-4 h-4" /> {uploading ? "Uploading…" : "Upload New QR Code"}
             </Button>
-            <p className="text-xs text-muted-foreground">JPG or PNG, max 5MB</p>
+            <p className="text-xs text-slate-300">JPG or PNG, max 5MB</p>
           </div>
         </div>
         <Field label="UPI ID" className="mt-4">
-          <Input value={form.upi_id} onChange={(e) => set("upi_id", e.target.value)} placeholder="e.g. kaaizens@upi" maxLength={100} />
+          <input className={FIELD} value={form.upi_id} onChange={(e) => set("upi_id", e.target.value)} placeholder="e.g. kaaizens@upi" maxLength={100} />
         </Field>
       </Section>
 
       <Section title="⏰ Booking Rules">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Field label="Counter Hold (hours)">
-            <Input type="number" min={0} value={form.counter_hold_hours} onChange={(e) => set("counter_hold_hours", e.target.value)} />
+            <input className={FIELD} type="number" min={0} value={form.counter_hold_hours} onChange={(e) => set("counter_hold_hours", e.target.value)} />
           </Field>
           <Field label="Grace Period (days)">
-            <Input type="number" min={0} value={form.grace_period_days} onChange={(e) => set("grace_period_days", e.target.value)} />
+            <input className={FIELD} type="number" min={0} value={form.grace_period_days} onChange={(e) => set("grace_period_days", e.target.value)} />
           </Field>
           <Field label="Expiry Reminder (days before)">
-            <Input type="number" min={0} value={form.expiry_reminder_days} onChange={(e) => set("expiry_reminder_days", e.target.value)} />
+            <input className={FIELD} type="number" min={0} value={form.expiry_reminder_days} onChange={(e) => set("expiry_reminder_days", e.target.value)} />
           </Field>
         </div>
       </Section>
 
       <Section title="🔑 Owner Account">
         <Field label="Owner WhatsApp Number">
-          <Input value={form.owner_phone} onChange={(e) => set("owner_phone", e.target.value)} maxLength={20} />
+          <input className={FIELD} value={form.owner_phone} onChange={(e) => set("owner_phone", e.target.value)} maxLength={20} />
         </Field>
-        <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 text-amber-800 px-3 py-2 text-sm">
-          ⚠️ This number is used for owner login. Changing it means you must use the new number to log in next time.
+        <div className="mt-3 rounded-md border border-sky-400/40 bg-sky-400/10 text-sky-100 px-3 py-2 text-sm">
+          ⚠️ Owner login is now controlled by the <span className="font-semibold">authorized_owners</span> table. Add or remove numbers there to change who can log in as owner.
         </div>
       </Section>
 
@@ -189,7 +190,7 @@ function SettingsPage() {
         size="lg"
         onClick={handleSave}
         disabled={saving}
-        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-base font-semibold h-12 rounded-xl"
+        className="w-full bg-emerald-500 hover:bg-emerald-600 text-white text-base font-semibold h-12 rounded-xl"
       >
         💾 {saving ? "Saving…" : "Save All Settings"}
       </Button>
@@ -199,8 +200,8 @@ function SettingsPage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border bg-white p-5 shadow-sm">
-      <h2 className="font-semibold text-lg mb-4 text-slate-800">{title}</h2>
+    <section className="rounded-xl border border-white/10 bg-white/5 p-5 shadow-sm">
+      <h2 className="font-semibold text-lg mb-4 text-[#4FC3F7]">{title}</h2>
       {children}
     </section>
   );
@@ -209,7 +210,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={className ?? "mb-3"}>
-      <Label className="text-sm mb-1 block">{label}</Label>
+      <label className="text-sm mb-1 block text-white font-medium">{label}</label>
       {children}
     </div>
   );
