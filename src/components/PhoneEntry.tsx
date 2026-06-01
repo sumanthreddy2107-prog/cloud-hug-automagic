@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Loader2, User, Shield } from "lucide-react";
 import { sendOtp } from "@/lib/otp.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 export function PhoneEntry({ role }: { role: "student" | "owner" }) {
   const navigate = useNavigate();
@@ -10,6 +11,18 @@ export function PhoneEntry({ role }: { role: "student" | "owner" }) {
   const [digits, setDigits] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [devMode, setDevMode] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase.from("settings").select("value").eq("key", "dev_otp_mode").maybeSingle();
+      if (cancelled) return;
+      const v = String(data?.value ?? "true").toLowerCase();
+      setDevMode(v === "true" || v === "1" || v === "yes");
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const valid = /^[0-9]{10}$/.test(digits);
   const isOwner = role === "owner";
@@ -75,10 +88,12 @@ export function PhoneEntry({ role }: { role: "student" | "owner" }) {
             <p className="rounded-md bg-red-500/10 border border-red-500/30 px-3 py-2 text-sm text-red-300">{error}</p>
           )}
 
-          <div className="rounded-md border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
-            <div className="font-semibold mb-1">🔧 Dev Mode — Sample OTP Login</div>
-            <div>No SMS is sent. After tapping <span className="font-semibold">Send OTP</span>, your 6-digit code appears on the next screen. Enter it there to log in.</div>
-          </div>
+          {devMode && (
+            <div className="rounded-md border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
+              <div className="font-semibold mb-1">🔧 Dev Mode — Sample OTP Login</div>
+              <div>No SMS is sent. After tapping <span className="font-semibold">Send OTP</span>, your 6-digit code appears on the next screen. Enter it there to log in.</div>
+            </div>
+          )}
 
           <button
             type="button"

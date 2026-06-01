@@ -17,6 +17,7 @@ const KEYS = [
   "qr_image_url", "upi_id",
   "counter_hold_hours", "grace_period_days", "expiry_reminder_days",
   "owner_phone",
+  "dev_otp_mode",
 ] as const;
 type Key = (typeof KEYS)[number];
 
@@ -185,6 +186,26 @@ function SettingsPage() {
           ⚠️ Owner login is now controlled by the <span className="font-semibold">authorized_owners</span> table. Add or remove numbers there to change who can log in as owner.
         </div>
       </Section>
+      <Section title="🧪 Developer Options">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-white font-medium">Dev Mode — Sample OTP</div>
+            <p className="text-xs text-slate-300 mt-1">
+              When ON, no SMS is sent. The 6-digit OTP is displayed on the verification screen for both student & owner logins. Turn OFF in production.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={form.dev_otp_mode === "true"}
+            onClick={() => set("dev_otp_mode", form.dev_otp_mode === "true" ? "false" : "true")}
+            className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${form.dev_otp_mode === "true" ? "bg-emerald-500" : "bg-white/20"}`}
+          >
+            <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${form.dev_otp_mode === "true" ? "translate-x-6" : "translate-x-1"}`} />
+          </button>
+        </div>
+      </Section>
+
 
       <Button
         size="lg"
