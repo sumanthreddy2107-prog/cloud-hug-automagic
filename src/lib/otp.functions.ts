@@ -89,7 +89,7 @@ export const sendOtp = createServerFn({ method: "POST" })
     });
     if (insErr) return { ok: false as const, error: insErr.message };
 
-    if (devMode()) {
+    if (await devMode()) {
       return { ok: true as const, dev: true as const, otp };
     }
 
