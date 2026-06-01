@@ -108,7 +108,10 @@ function OtpPage() {
       } else {
         setCountdown(30);
         setDigits(Array(6).fill(""));
-        if ("dev" in res && res.dev) setDevOtpShown(res.otp);
+        if ("dev" in res && res.dev && res.otp) {
+          setDevOtpShown(res.otp);
+          try { sessionStorage.setItem(`devOtp:${phone}:${role}`, res.otp); } catch { /* ignore */ }
+        }
       }
     } finally {
       setResending(false);
