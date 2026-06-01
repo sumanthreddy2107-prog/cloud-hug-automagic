@@ -26,7 +26,12 @@ function OtpPage() {
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(30);
   const [resending, setResending] = useState(false);
-  const [devOtpShown, setDevOtpShown] = useState(devOtp);
+  const [devOtpShown, setDevOtpShown] = useState(() => {
+    if (devOtp) return devOtp;
+    try {
+      return sessionStorage.getItem(`devOtp:${phone}:${role}`) ?? "";
+    } catch { return ""; }
+  });
   const refs = useRef<Array<HTMLInputElement | null>>([]);
 
   useEffect(() => {
@@ -103,7 +108,10 @@ function OtpPage() {
       } else {
         setCountdown(30);
         setDigits(Array(6).fill(""));
-        if ("dev" in res && res.dev) setDevOtpShown(res.otp);
+        if ("dev" in res && res.dev && res.otp) {
+          setDevOtpShown(res.otp);
+          try { sessionStorage.setItem(`devOtp:${phone}:${role}`, res.otp); } catch { /* ignore */ }
+        }
       }
     } finally {
       setResending(false);

@@ -90,11 +90,12 @@ export const sendOtp = createServerFn({ method: "POST" })
     if (insErr) return { ok: false as const, error: insErr.message };
 
     if (await devMode()) {
-      return { ok: true as const, dev: true as const, otp };
+      console.log(`[sendOtp] DEV MODE OTP for ${phone} (${role}): ${otp}`);
+      return { ok: true as const, dev: true as const, otp: String(otp) };
     }
 
     await sendSmsPlaceholder(`+91${phone}`, otp);
-    return { ok: true as const, dev: false as const };
+    return { ok: true as const, dev: false as const, otp: "" };
   });
 
 export const verifyOtp = createServerFn({ method: "POST" })
