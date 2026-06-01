@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Loader2, User, Shield } from "lucide-react";
 import { sendOtp } from "@/lib/otp.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 export function PhoneEntry({ role }: { role: "student" | "owner" }) {
   const navigate = useNavigate();
