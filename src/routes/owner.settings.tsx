@@ -17,6 +17,7 @@ const KEYS = [
   "qr_image_url", "upi_id",
   "counter_hold_hours", "grace_period_days", "expiry_reminder_days",
   "owner_phone",
+  "dev_otp_mode",
 ] as const;
 type Key = (typeof KEYS)[number];
 
