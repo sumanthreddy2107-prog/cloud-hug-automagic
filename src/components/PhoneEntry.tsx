@@ -38,8 +38,12 @@ export function PhoneEntry({ role }: { role: "student" | "owner" }) {
         setLoading(false);
         return;
       }
-      const devOtp = "dev" in res && res.dev ? res.otp : undefined;
-      navigate({ to: "/otp", search: { phone: digits, role, devOtp: devOtp ?? "" } });
+      const devOtp = "dev" in res && res.dev ? (res.otp ?? "") : "";
+      try {
+        if (devOtp) sessionStorage.setItem(`devOtp:${digits}:${role}`, devOtp);
+        else sessionStorage.removeItem(`devOtp:${digits}:${role}`);
+      } catch { /* ignore */ }
+      navigate({ to: "/otp", search: { phone: digits, role, devOtp } });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to send OTP");
       setLoading(false);
