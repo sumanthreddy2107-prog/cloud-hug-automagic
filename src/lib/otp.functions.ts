@@ -7,9 +7,18 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 const PhoneSchema = z.string().regex(/^[0-9]{10}$/, "Phone must be 10 digits");
 const RoleSchema = z.enum(["student", "owner"]);
 
-function devMode(): boolean {
-  const v = (process.env.DEV_OTP_MODE ?? "true").toLowerCase();
-  return v === "true" || v === "1" || v === "yes";
+async function devMode(): Promise<boolean> {
+  const { data } = await supabaseAdmin
+    .from("settings")
+    .select("value")
+    .eq("key", "dev_otp_mode")
+    .maybeSingle();
+  if (data?.value != null) {
+    const v = String(data.value).toLowerCase();
+    return v === "true" || v === "1" || v === "yes";
+  }
+  const env = (process.env.DEV_OTP_MODE ?? "true").toLowerCase();
+  return env === "true" || env === "1" || env === "yes";
 }
 
 function hashOtp(phone: string, otp: string): string {
