@@ -11,6 +11,18 @@ export function PhoneEntry({ role }: { role: "student" | "owner" }) {
   const [digits, setDigits] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [devMode, setDevMode] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase.from("settings").select("value").eq("key", "dev_otp_mode").maybeSingle();
+      if (cancelled) return;
+      const v = String(data?.value ?? "true").toLowerCase();
+      setDevMode(v === "true" || v === "1" || v === "yes");
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const valid = /^[0-9]{10}$/.test(digits);
   const isOwner = role === "owner";
