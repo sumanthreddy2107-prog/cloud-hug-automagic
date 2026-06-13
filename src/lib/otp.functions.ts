@@ -151,7 +151,7 @@ export const verifyOtp = createServerFn({ method: "POST" })
       .update({ verified: true })
       .eq("id", row.id);
 
-    const phoneE164Digits = `91${phone}`;
+    const syntheticEmail = `phone91${phone}@otp.kaaizens.local`;
     const password = derivedPassword(phone);
 
     let existingId: string | null = null;
@@ -161,24 +161,56 @@ export const verifyOtp = createServerFn({ method: "POST" })
         perPage: 1000,
       });
       if (listErr) break;
-      const found = list.users.find((u) => (u.phone ?? "").replace(/\D/g, "").endsWith(phone));
+      const found = list.users.find((u) => {
+        const emailMatch = (u.email ?? "").toLowerCase() === syntheticEmail;
+        const phoneMatch = (u.phone ?? "").replace(/\D/g, "").endsWith(phone);
+        return emailMatch || phoneMatch;
+      });
       if (found) existingId = found.id;
       if (list.users.length < 1000) break;
     }
 
+    let userId: string;
     if (existingId) {
       const { error: upErr } = await supabaseAdmin.auth.admin.updateUserById(existingId, {
         password,
-        phone_confirm: true,
+        email: syntheticEmail,
+        email_confirm: true,
+        user_metadata: { phone: `+91${phone}` },
       });
       if (upErr) return { ok: false as const, error: `Auth update failed: ${upErr.message}` };
+      userId = existingId;
     } else {
-      const { error: createErr } = await supabaseAdmin.auth.admin.createUser({
-        phone: phoneE164Digits,
+      const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+        email: syntheticEmail,
         password,
-        phone_confirm: true,
+        email_confirm: true,
+        user_metadata: { phone: `+91${phone}` },
       });
-      if (createErr) return { ok: false as const, error: `Auth create failed: ${createErr.message}` };
+      if (createErr || !created.user) {
+        return { ok: false as const, error: `Auth create failed: ${createErr?.message ?? "unknown"}` };
+      }
+      userId = created.user.id;
+    }
+
+    // Ensure role + student profile rows (handle_new_user trigger isn't wired)
+    await supabaseAdmin.from("user_roles").upsert(
+      { user_id: userId, role: role === "owner" ? "owner" : "student" },
+      { onConflict: "user_id,role" },
+    );
+    if (role === "student") {
+      const { data: existingStudent } = await supabaseAdmin
+        .from("students")
+        .select("id, user_id")
+        .or(`user_id.eq.${userId},phone.eq.+91${phone}`)
+        .maybeSingle();
+      if (existingStudent) {
+        if (existingStudent.user_id !== userId) {
+          await supabaseAdmin.from("students").update({ user_id: userId }).eq("id", existingStudent.id);
+        }
+      } else {
+        await supabaseAdmin.from("students").insert({ user_id: userId, phone: `+91${phone}`, name: "" });
+      }
     }
 
     const url = process.env.SUPABASE_URL!;
@@ -187,7 +219,7 @@ export const verifyOtp = createServerFn({ method: "POST" })
       auth: { persistSession: false, autoRefreshToken: false },
     });
     const { data: signIn, error: signInErr } = await ephemeral.auth.signInWithPassword({
-      phone: phoneE164Digits,
+      email: syntheticEmail,
       password,
     });
     if (signInErr || !signIn.session) {
