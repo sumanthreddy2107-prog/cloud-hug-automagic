@@ -1,0 +1,1 @@
+INSERT INTO public.settings (key, value) VALUES ('dev_otp_mode', 'true') ON CONFLICT (key) DO UPDATE SET value = 'true';
