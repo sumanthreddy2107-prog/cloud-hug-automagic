@@ -49,12 +49,14 @@ export type Database = {
           id: string
           pass_type: string
           payment_method: string | null
+          payment_proof_url: string | null
           payment_status: string
           seat_id: string
           start_date: string
           status: string
           student_id: string
           upi_transaction_id: string | null
+          verified_at: string | null
         }
         Insert: {
           amount: number
@@ -66,12 +68,14 @@ export type Database = {
           id?: string
           pass_type: string
           payment_method?: string | null
+          payment_proof_url?: string | null
           payment_status?: string
           seat_id: string
           start_date: string
           status?: string
           student_id: string
           upi_transaction_id?: string | null
+          verified_at?: string | null
         }
         Update: {
           amount?: number
@@ -83,12 +87,14 @@ export type Database = {
           id?: string
           pass_type?: string
           payment_method?: string | null
+          payment_proof_url?: string | null
           payment_status?: string
           seat_id?: string
           start_date?: string
           status?: string
           student_id?: string
           upi_transaction_id?: string | null
+          verified_at?: string | null
         }
         Relationships: [
           {
