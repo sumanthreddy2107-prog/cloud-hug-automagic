@@ -90,7 +90,7 @@ function OwnerLayoutRoute() {
 
         {/* Mobile bottom nav */}
         <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white md:hidden">
-          <ul className="grid grid-cols-5">
+          <ul className="grid grid-cols-6">
             {NAV.map((n) => {
               const active = pathname.startsWith(n.to);
               const Icon = n.icon;
