@@ -10,7 +10,7 @@ const inputSchema = z.object({
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   amount: z.number().positive().max(1_000_000),
   payment_method: z.enum(["upi", "counter"]),
-  upi_transaction_id: z.string().min(4).max(64).optional(),
+  payment_proof_url: z.string().min(1).max(2048).optional(),
 });
 
 function generateBookingCode(): string {
@@ -52,15 +52,19 @@ export const createBooking = createServerFn({ method: "POST" })
     if (seat.status !== "vacant") throw new Error("Seat no longer available.");
 
     const isUpi = data.payment_method === "upi";
+    if (isUpi && !data.payment_proof_url) {
+      throw new Error("Payment screenshot is required.");
+    }
+    // UPI: booking is CONFIRMED (active) immediately, payment awaits owner verification.
+    // Counter: held for 2 hours pending payment.
     const status = isUpi ? "active" : "pending_payment";
-    const payment_status = isUpi ? "paid" : "pending";
+    const payment_status = "pending";
     const hold_expires_at = isUpi
       ? null
       : new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
     const booking_code = generateBookingCode();
     const grace_end_date = addDays(data.end_date, 2);
 
-    // 3. Insert booking via admin (bypass RLS noise; we've already checked auth + ownership)
     const { data: booking, error: bookErr } = await supabaseAdmin
       .from("bookings")
       .insert({
@@ -76,7 +80,7 @@ export const createBooking = createServerFn({ method: "POST" })
         status,
         booking_code,
         hold_expires_at,
-        upi_transaction_id: data.upi_transaction_id ?? null,
+        payment_proof_url: data.payment_proof_url ?? null,
       })
       .select("*")
       .single();

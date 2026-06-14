@@ -7,7 +7,7 @@ export interface ConfirmBookingInput {
   end_date: string;
   amount: number;
   payment_method: "upi" | "counter";
-  upi_transaction_id?: string;
+  payment_proof_url?: string;
 }
 
 export async function confirmBooking(input: ConfirmBookingInput) {
