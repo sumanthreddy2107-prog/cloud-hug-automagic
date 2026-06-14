@@ -22,6 +22,7 @@ import { Route as StudentBookRouteImport } from './routes/student.book'
 import { Route as OwnerSettingsRouteImport } from './routes/owner.settings'
 import { Route as OwnerSeatsRouteImport } from './routes/owner.seats'
 import { Route as OwnerRevenueRouteImport } from './routes/owner.revenue'
+import { Route as OwnerInvoicesRouteImport } from './routes/owner.invoices'
 import { Route as OwnerDashboardRouteImport } from './routes/owner.dashboard'
 import { Route as OwnerBookingsRouteImport } from './routes/owner.bookings'
 import { Route as OwnerAlertsRouteImport } from './routes/owner.alerts'
@@ -93,6 +94,11 @@ const OwnerRevenueRoute = OwnerRevenueRouteImport.update({
   path: '/revenue',
   getParentRoute: () => OwnerRoute,
 } as any)
+const OwnerInvoicesRoute = OwnerInvoicesRouteImport.update({
+  id: '/invoices',
+  path: '/invoices',
+  getParentRoute: () => OwnerRoute,
+} as any)
 const OwnerDashboardRoute = OwnerDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/owner/alerts': typeof OwnerAlertsRoute
   '/owner/bookings': typeof OwnerBookingsRoute
   '/owner/dashboard': typeof OwnerDashboardRoute
+  '/owner/invoices': typeof OwnerInvoicesRoute
   '/owner/revenue': typeof OwnerRevenueRoute
   '/owner/seats': typeof OwnerSeatsRoute
   '/owner/settings': typeof OwnerSettingsRoute
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/owner/alerts': typeof OwnerAlertsRoute
   '/owner/bookings': typeof OwnerBookingsRoute
   '/owner/dashboard': typeof OwnerDashboardRoute
+  '/owner/invoices': typeof OwnerInvoicesRoute
   '/owner/revenue': typeof OwnerRevenueRoute
   '/owner/seats': typeof OwnerSeatsRoute
   '/owner/settings': typeof OwnerSettingsRoute
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/owner/alerts': typeof OwnerAlertsRoute
   '/owner/bookings': typeof OwnerBookingsRoute
   '/owner/dashboard': typeof OwnerDashboardRoute
+  '/owner/invoices': typeof OwnerInvoicesRoute
   '/owner/revenue': typeof OwnerRevenueRoute
   '/owner/seats': typeof OwnerSeatsRoute
   '/owner/settings': typeof OwnerSettingsRoute
@@ -192,6 +201,7 @@ export interface FileRouteTypes {
     | '/owner/alerts'
     | '/owner/bookings'
     | '/owner/dashboard'
+    | '/owner/invoices'
     | '/owner/revenue'
     | '/owner/seats'
     | '/owner/settings'
@@ -212,6 +222,7 @@ export interface FileRouteTypes {
     | '/owner/alerts'
     | '/owner/bookings'
     | '/owner/dashboard'
+    | '/owner/invoices'
     | '/owner/revenue'
     | '/owner/seats'
     | '/owner/settings'
@@ -232,6 +243,7 @@ export interface FileRouteTypes {
     | '/owner/alerts'
     | '/owner/bookings'
     | '/owner/dashboard'
+    | '/owner/invoices'
     | '/owner/revenue'
     | '/owner/seats'
     | '/owner/settings'
@@ -345,6 +357,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OwnerRevenueRouteImport
       parentRoute: typeof OwnerRoute
     }
+    '/owner/invoices': {
+      id: '/owner/invoices'
+      path: '/invoices'
+      fullPath: '/owner/invoices'
+      preLoaderRoute: typeof OwnerInvoicesRouteImport
+      parentRoute: typeof OwnerRoute
+    }
     '/owner/dashboard': {
       id: '/owner/dashboard'
       path: '/dashboard'
@@ -387,6 +406,7 @@ interface OwnerRouteChildren {
   OwnerAlertsRoute: typeof OwnerAlertsRoute
   OwnerBookingsRoute: typeof OwnerBookingsRoute
   OwnerDashboardRoute: typeof OwnerDashboardRoute
+  OwnerInvoicesRoute: typeof OwnerInvoicesRoute
   OwnerRevenueRoute: typeof OwnerRevenueRoute
   OwnerSeatsRoute: typeof OwnerSeatsRoute
   OwnerSettingsRoute: typeof OwnerSettingsRoute
@@ -396,6 +416,7 @@ const OwnerRouteChildren: OwnerRouteChildren = {
   OwnerAlertsRoute: OwnerAlertsRoute,
   OwnerBookingsRoute: OwnerBookingsRoute,
   OwnerDashboardRoute: OwnerDashboardRoute,
+  OwnerInvoicesRoute: OwnerInvoicesRoute,
   OwnerRevenueRoute: OwnerRevenueRoute,
   OwnerSeatsRoute: OwnerSeatsRoute,
   OwnerSettingsRoute: OwnerSettingsRoute,
@@ -435,3 +456,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
