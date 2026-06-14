@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Bell, Map, ListChecks, IndianRupee, AlertTriangle, Settings as SettingsIcon } from "lucide-react";
+import { Bell, Map, ListChecks, IndianRupee, AlertTriangle, Settings as SettingsIcon, FileText } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,7 @@ export const Route = createFileRoute("/owner")({
 const NAV = [
   { to: "/owner/seats", label: "Seat Map", icon: Map },
   { to: "/owner/bookings", label: "Bookings", icon: ListChecks },
+  { to: "/owner/invoices", label: "Invoices", icon: FileText },
   { to: "/owner/revenue", label: "Revenue", icon: IndianRupee },
   { to: "/owner/alerts", label: "Alerts", icon: AlertTriangle },
   { to: "/owner/settings", label: "Settings", icon: SettingsIcon },
