@@ -1,10 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Lock, User } from "lucide-react";
+import { ArrowLeft, Lock, User, Ticket, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/student/confirm")({
   component: ConfirmPage,
@@ -38,12 +39,24 @@ function formatDate(d: Date): string {
   });
 }
 
+type AppliedCoupon = {
+  id: string;
+  code: string;
+  type: "fixed" | "percent";
+  value: number;
+  applies_to: "both" | "month" | "day";
+  discount: number;
+};
+
 function ConfirmPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [draft, setDraft] = useState<BookingDraft | null>(null);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [couponInput, setCouponInput] = useState("");
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [coupon, setCoupon] = useState<AppliedCoupon | null>(null);
 
   useEffect(() => {
     const d = readDraft();
@@ -83,6 +96,46 @@ function ConfirmPage() {
   const cabinLabel = draft.seatType === "ac" ? "❄️ AC Cabin" : "🪑 Non-AC Cabin";
   const passLabel = draft.passType === "month" ? "🗓️ Month Pass" : "📅 Day Pass";
 
+  const subtotal = draft.amount;
+  const discount = coupon?.discount ?? 0;
+  const finalTotal = Math.max(0, subtotal - discount);
+
+  const computeDiscount = (c: { type: "fixed" | "percent"; value: number }, amount: number) => {
+    if (c.type === "fixed") return Math.min(Number(c.value), amount);
+    return Math.round((amount * Number(c.value)) / 100);
+  };
+
+  const handleApplyCoupon = async () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) return;
+    setApplyingCoupon(true);
+    try {
+      const { data, error } = await supabase
+        .from("coupons")
+        .select("id,code,type,value,applies_to")
+        .eq("code", code)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        toast.error("Invalid coupon code.");
+        return;
+      }
+      const c = data as Omit<AppliedCoupon, "discount">;
+      if (c.applies_to !== "both" && c.applies_to !== draft.passType) {
+        const which = c.applies_to === "month" ? "Month" : "Day";
+        toast.error(`This coupon is valid for ${which} Pass only.`);
+        return;
+      }
+      setCoupon({ ...c, discount: computeDiscount(c, subtotal) });
+      setCouponInput("");
+      toast.success(`🎟️ Coupon ${c.code} applied`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not apply coupon");
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
   const handleProceed = async () => {
     if (!name.trim()) {
       toast("Please enter your name");
@@ -104,6 +157,11 @@ function ConfirmPage() {
           name: name.trim(),
           startDate: today.toISOString().slice(0, 10),
           endDate: end.toISOString().slice(0, 10),
+          amount: finalTotal,
+          originalAmount: subtotal,
+          coupon: coupon
+            ? { code: coupon.code, discount: coupon.discount }
+            : null,
         }),
       );
       navigate({ to: "/student/payment" });
@@ -113,6 +171,7 @@ function ConfirmPage() {
       setSaving(false);
     }
   };
+
 
   return (
     <div className="flex flex-col gap-6 pb-10">
