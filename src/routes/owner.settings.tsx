@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Upload } from "lucide-react";
+import { Upload, Trash2, Plus, Ticket } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export const Route = createFileRoute("/owner/settings")({
   component: SettingsPage,
 });
+
 
 const KEYS = [
   "hall_name", "hall_phone", "hall_address",
@@ -206,6 +207,7 @@ function SettingsPage() {
         </div>
       </Section>
 
+      <CouponsSection />
 
       <Button
         size="lg"
@@ -218,6 +220,184 @@ function SettingsPage() {
     </div>
   );
 }
+
+type Coupon = {
+  id: string;
+  code: string;
+  type: "fixed" | "percent";
+  value: number;
+  applies_to: "both" | "month" | "day";
+};
+
+function CouponsSection() {
+  const qc = useQueryClient();
+  const [code, setCode] = useState("");
+  const [type, setType] = useState<"fixed" | "percent">("fixed");
+  const [value, setValue] = useState("");
+  const [appliesTo, setAppliesTo] = useState<"both" | "month" | "day">("both");
+  const [creating, setCreating] = useState(false);
+
+  const { data: coupons = [], isLoading } = useQuery({
+    queryKey: ["coupons"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("coupons")
+        .select("id,code,type,value,applies_to")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as Coupon[];
+    },
+  });
+
+  const handleCreate = async () => {
+    const trimmed = code.trim().toUpperCase();
+    const num = Number(value);
+    if (!trimmed) return toast.error("Enter a coupon code");
+    if (!/^[A-Z0-9_-]+$/.test(trimmed)) return toast.error("Code: letters, numbers, _ or - only");
+    if (!Number.isFinite(num) || num <= 0) return toast.error("Value must be greater than 0");
+    if (type === "percent" && num > 100) return toast.error("Percentage cannot exceed 100");
+
+    setCreating(true);
+    try {
+      const { error } = await supabase.from("coupons").insert({
+        code: trimmed,
+        type,
+        value: num,
+        applies_to: appliesTo,
+      });
+      if (error) {
+        if (error.code === "23505") toast.error("Coupon code already exists");
+        else toast.error(error.message);
+        return;
+      }
+      toast.success(`🎟️ Coupon ${trimmed} created`);
+      setCode("");
+      setValue("");
+      setType("fixed");
+      setAppliesTo("both");
+      qc.invalidateQueries({ queryKey: ["coupons"] });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDelete = async (id: string, codeLabel: string) => {
+    if (!confirm(`Delete coupon ${codeLabel}? This cannot be undone.`)) return;
+    const { error } = await supabase.from("coupons").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success(`Deleted ${codeLabel}`);
+    qc.invalidateQueries({ queryKey: ["coupons"] });
+  };
+
+  const appliesLabel = (a: Coupon["applies_to"]) =>
+    a === "both" ? "All passes" : a === "month" ? "Month Pass only" : "Day Pass only";
+
+  return (
+    <Section title="🎟️ Coupons">
+      {/* Active coupons */}
+      <div className="space-y-3 mb-6">
+        <div className="text-sm text-slate-300">Active coupons</div>
+        {isLoading ? (
+          <Skeleton className="h-20 w-full bg-white/10" />
+        ) : coupons.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-white/15 bg-white/5 px-4 py-6 text-center text-sm text-slate-400">
+            No coupons yet. Create your first one below.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {coupons.map((c) => (
+              <div
+                key={c.id}
+                className="flex items-start justify-between gap-3 rounded-xl border border-white/15 bg-white/5 p-4"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Ticket className="h-4 w-4 text-emerald-400" />
+                    <span className="font-mono text-base font-bold tracking-wider text-white">
+                      {c.code}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 text-sm text-emerald-300">
+                    {c.type === "fixed"
+                      ? `₹${Number(c.value).toLocaleString("en-IN")} off`
+                      : `${c.value}% off`}
+                  </div>
+                  <div className="text-xs text-slate-400 mt-1">{appliesLabel(c.applies_to)}</div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">Unlimited uses</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(c.id, c.code)}
+                  aria-label={`Delete coupon ${c.code}`}
+                  className="shrink-0 rounded-md p-2 text-slate-400 hover:bg-rose-500/15 hover:text-rose-300"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Create new */}
+      <div className="rounded-xl border border-white/15 bg-white/[0.04] p-4">
+        <div className="text-sm font-medium text-white mb-3">Create new coupon</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Code">
+            <input
+              className={FIELD + " uppercase tracking-wider font-mono"}
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="SAVE200"
+              maxLength={32}
+            />
+          </Field>
+          <Field label="Type">
+            <select
+              className={FIELD}
+              value={type}
+              onChange={(e) => setType(e.target.value as "fixed" | "percent")}
+            >
+              <option value="fixed">Fixed Amount (₹)</option>
+              <option value="percent">Percentage (%)</option>
+            </select>
+          </Field>
+          <Field label={type === "fixed" ? "Value (₹)" : "Value (%)"}>
+            <input
+              className={FIELD}
+              type="number"
+              min={1}
+              max={type === "percent" ? 100 : undefined}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder={type === "fixed" ? "200" : "10"}
+            />
+          </Field>
+          <Field label="Applies to">
+            <select
+              className={FIELD}
+              value={appliesTo}
+              onChange={(e) => setAppliesTo(e.target.value as "both" | "month" | "day")}
+            >
+              <option value="both">All passes (Month + Day)</option>
+              <option value="month">Month Pass only</option>
+              <option value="day">Day Pass only</option>
+            </select>
+          </Field>
+        </div>
+        <Button
+          type="button"
+          onClick={handleCreate}
+          disabled={creating}
+          className="mt-4 bg-emerald-500 hover:bg-emerald-600 text-white"
+        >
+          <Plus className="h-4 w-4" /> {creating ? "Creating…" : "Create Coupon"}
+        </Button>
+      </div>
+    </Section>
+  );
+}
+
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

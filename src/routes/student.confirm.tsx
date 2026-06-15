@@ -1,10 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Lock, User } from "lucide-react";
+import { ArrowLeft, Lock, User, Ticket, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/student/confirm")({
   component: ConfirmPage,
@@ -38,12 +39,24 @@ function formatDate(d: Date): string {
   });
 }
 
+type AppliedCoupon = {
+  id: string;
+  code: string;
+  type: "fixed" | "percent";
+  value: number;
+  applies_to: "both" | "month" | "day";
+  discount: number;
+};
+
 function ConfirmPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [draft, setDraft] = useState<BookingDraft | null>(null);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [couponInput, setCouponInput] = useState("");
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [coupon, setCoupon] = useState<AppliedCoupon | null>(null);
 
   useEffect(() => {
     const d = readDraft();
@@ -83,6 +96,46 @@ function ConfirmPage() {
   const cabinLabel = draft.seatType === "ac" ? "❄️ AC Cabin" : "🪑 Non-AC Cabin";
   const passLabel = draft.passType === "month" ? "🗓️ Month Pass" : "📅 Day Pass";
 
+  const subtotal = draft.amount;
+  const discount = coupon?.discount ?? 0;
+  const finalTotal = Math.max(0, subtotal - discount);
+
+  const computeDiscount = (c: { type: "fixed" | "percent"; value: number }, amount: number) => {
+    if (c.type === "fixed") return Math.min(Number(c.value), amount);
+    return Math.round((amount * Number(c.value)) / 100);
+  };
+
+  const handleApplyCoupon = async () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) return;
+    setApplyingCoupon(true);
+    try {
+      const { data, error } = await supabase
+        .from("coupons")
+        .select("id,code,type,value,applies_to")
+        .eq("code", code)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        toast.error("Invalid coupon code.");
+        return;
+      }
+      const c = data as Omit<AppliedCoupon, "discount">;
+      if (c.applies_to !== "both" && c.applies_to !== draft.passType) {
+        const which = c.applies_to === "month" ? "Month" : "Day";
+        toast.error(`This coupon is valid for ${which} Pass only.`);
+        return;
+      }
+      setCoupon({ ...c, discount: computeDiscount(c, subtotal) });
+      setCouponInput("");
+      toast.success(`🎟️ Coupon ${c.code} applied`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not apply coupon");
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
   const handleProceed = async () => {
     if (!name.trim()) {
       toast("Please enter your name");
@@ -104,6 +157,11 @@ function ConfirmPage() {
           name: name.trim(),
           startDate: today.toISOString().slice(0, 10),
           endDate: end.toISOString().slice(0, 10),
+          amount: finalTotal,
+          originalAmount: subtotal,
+          coupon: coupon
+            ? { code: coupon.code, discount: coupon.discount }
+            : null,
         }),
       );
       navigate({ to: "/student/payment" });
@@ -113,6 +171,7 @@ function ConfirmPage() {
       setSaving(false);
     }
   };
+
 
   return (
     <div className="flex flex-col gap-6 pb-10">
@@ -173,6 +232,56 @@ function ConfirmPage() {
         </div>
       </div>
 
+      {/* Coupon Code */}
+      <div className="rounded-2xl bg-white p-6 text-slate-900 shadow">
+        <div className="mb-3 flex items-center gap-2">
+          <Ticket className="h-5 w-5 text-emerald-600" />
+          <h2 className="font-bold">Have a coupon?</h2>
+        </div>
+        {coupon ? (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+            <div className="min-w-0">
+              <div className="font-mono text-sm font-bold tracking-wider text-emerald-700">
+                🎟️ {coupon.code}
+              </div>
+              <div className="text-xs text-emerald-600">
+                {coupon.type === "fixed"
+                  ? `₹${coupon.value} off`
+                  : `${coupon.value}% off`}
+                {" · "}−₹{coupon.discount.toLocaleString("en-IN")}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCoupon(null)}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+              aria-label="Remove coupon"
+            >
+              <X className="h-3.5 w-3.5" /> Remove
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={couponInput}
+              onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+              onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
+              placeholder="ENTER CODE"
+              className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-mono uppercase tracking-wider outline-none placeholder:font-sans placeholder:tracking-normal focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+            />
+            <button
+              type="button"
+              onClick={handleApplyCoupon}
+              disabled={applyingCoupon || !couponInput.trim()}
+              className="rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-50"
+            >
+              {applyingCoupon ? "…" : "Apply"}
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Booking Summary */}
       <div className="overflow-hidden rounded-2xl bg-white text-slate-900 shadow">
         <div className="h-1 w-full bg-emerald-500" />
@@ -186,13 +295,28 @@ function ConfirmPage() {
           <SummaryRow label="Valid From" value={formatDate(today)} stripe />
           <SummaryRow label="Valid Until" value={formatDate(end)} stripe={false} />
         </div>
-        <div className="mt-4 flex items-center justify-between bg-emerald-50 px-6 py-4">
-          <span className="text-sm font-medium text-slate-700">Total Amount</span>
+        {coupon ? (
+          <div className="mt-2 space-y-1 px-6 pb-2 pt-3 text-sm">
+            <div className="flex items-center justify-between text-slate-500">
+              <span>Subtotal</span>
+              <span className="line-through">₹{subtotal.toLocaleString("en-IN")}</span>
+            </div>
+            <div className="flex items-center justify-between text-emerald-600">
+              <span>Discount ({coupon.code})</span>
+              <span>− ₹{discount.toLocaleString("en-IN")}</span>
+            </div>
+          </div>
+        ) : null}
+        <div className="mt-2 flex items-center justify-between bg-emerald-50 px-6 py-4">
+          <span className="text-sm font-medium text-slate-700">
+            {coupon ? "Final Total" : "Total Amount"}
+          </span>
           <span className="text-2xl font-bold text-emerald-600">
-            ₹{draft.amount.toLocaleString("en-IN")}
+            ₹{finalTotal.toLocaleString("en-IN")}
           </span>
         </div>
       </div>
+
 
       {/* Button */}
       <button
