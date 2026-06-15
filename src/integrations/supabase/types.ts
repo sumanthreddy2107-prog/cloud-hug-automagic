@@ -113,6 +113,33 @@ export type Database = {
           },
         ]
       }
+      coupons: {
+        Row: {
+          applies_to: string
+          code: string
+          created_at: string
+          id: string
+          type: string
+          value: number
+        }
+        Insert: {
+          applies_to: string
+          code: string
+          created_at?: string
+          id?: string
+          type: string
+          value: number
+        }
+        Update: {
+          applies_to?: string
+          code?: string
+          created_at?: string
+          id?: string
+          type?: string
+          value?: number
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           booking_id: string | null
