@@ -1,11 +1,26 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Lock, User, Ticket, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Lock,
+  User,
+  Ticket,
+  X,
+  Calendar as CalendarIcon,
+  Pencil,
+  Minus,
+  Plus,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export const Route = createFileRoute("/student/confirm")({
   component: ConfirmPage,
@@ -17,7 +32,7 @@ type PassType = "day" | "month";
 interface BookingDraft {
   seatType: SeatType;
   passType: PassType;
-  amount: number;
+  amount: number; // unit price (per month or per day)
   seatId?: string;
   seatNumber?: string;
 }
@@ -39,6 +54,25 @@ function formatDate(d: Date): string {
   });
 }
 
+function startOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function addDays(d: Date, n: number): Date {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
+
+function toISODate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 type AppliedCoupon = {
   id: string;
   code: string;
@@ -57,6 +91,17 @@ function ConfirmPage() {
   const [couponInput, setCouponInput] = useState("");
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [coupon, setCoupon] = useState<AppliedCoupon | null>(null);
+
+  // Date state
+  const today = useMemo(() => startOfDay(new Date()), []);
+  const [monthStart, setMonthStart] = useState<Date>(today);
+  const [months, setMonths] = useState<number>(1);
+  const [monthsInput, setMonthsInput] = useState<string>("1");
+  const [dayFrom, setDayFrom] = useState<Date>(today);
+  const [dayTo, setDayTo] = useState<Date>(today);
+  const [editMonthStart, setEditMonthStart] = useState(false);
+  const [editDayFrom, setEditDayFrom] = useState(false);
+  const [editDayTo, setEditDayTo] = useState(false);
 
   useEffect(() => {
     const d = readDraft();
@@ -89,21 +134,31 @@ function ConfirmPage() {
 
   if (!draft) return null;
 
-  const today = new Date();
-  const end = new Date(today);
-  end.setDate(end.getDate() + (draft.passType === "month" ? 30 : 1));
+  const unitPrice = draft.amount;
+  const isMonth = draft.passType === "month";
 
-  const cabinLabel = draft.seatType === "ac" ? "❄️ AC Cabin" : "🪑 Non-AC Cabin";
-  const passLabel = draft.passType === "month" ? "🗓️ Month Pass" : "📅 Day Pass";
+  // Derived date / amount values
+  const monthDays = months * 30;
+  const monthEnd = addDays(monthStart, monthDays - 1);
+  const dayCount = Math.max(
+    1,
+    Math.round((startOfDay(dayTo).getTime() - startOfDay(dayFrom).getTime()) / 86400000) + 1,
+  );
+  const quantity = isMonth ? months : dayCount;
+  const subtotal = unitPrice * quantity;
+  const startDate = isMonth ? monthStart : dayFrom;
+  const endDate = isMonth ? monthEnd : dayTo;
 
-  const subtotal = draft.amount;
-  const discount = coupon?.discount ?? 0;
+  // Re-compute coupon discount on subtotal changes
+  const discount = useMemo(() => {
+    if (!coupon) return 0;
+    if (coupon.type === "fixed") return Math.min(Number(coupon.value), subtotal);
+    return Math.round((subtotal * Number(coupon.value)) / 100);
+  }, [coupon, subtotal]);
   const finalTotal = Math.max(0, subtotal - discount);
 
-  const computeDiscount = (c: { type: "fixed" | "percent"; value: number }, amount: number) => {
-    if (c.type === "fixed") return Math.min(Number(c.value), amount);
-    return Math.round((amount * Number(c.value)) / 100);
-  };
+  const cabinLabel = draft.seatType === "ac" ? "❄️ AC Cabin" : "🪑 Non-AC Cabin";
+  const passLabel = isMonth ? "🗓️ Month Pass" : "📅 Day Pass";
 
   const handleApplyCoupon = async () => {
     const code = couponInput.trim().toUpperCase();
@@ -126,7 +181,7 @@ function ConfirmPage() {
         toast.error(`This coupon is valid for ${which} Pass only.`);
         return;
       }
-      setCoupon({ ...c, discount: computeDiscount(c, subtotal) });
+      setCoupon({ ...c, discount: 0 });
       setCouponInput("");
       toast.success(`🎟️ Coupon ${c.code} applied`);
     } catch (e) {
@@ -134,6 +189,26 @@ function ConfirmPage() {
     } finally {
       setApplyingCoupon(false);
     }
+  };
+
+  const commitMonths = (raw: string) => {
+    const n = parseInt(raw, 10);
+    if (Number.isFinite(n) && n >= 1) {
+      setMonths(n);
+      setMonthsInput(String(n));
+    } else {
+      setMonthsInput(String(months));
+    }
+  };
+
+  const handleDayFromChange = (d: Date | undefined) => {
+    if (!d) return;
+    const nd = startOfDay(d);
+    setDayFrom(nd);
+    if (nd.getTime() > startOfDay(dayTo).getTime()) {
+      setDayTo(nd);
+    }
+    setEditDayFrom(false);
   };
 
   const handleProceed = async () => {
@@ -155,12 +230,15 @@ function ConfirmPage() {
         JSON.stringify({
           ...draft,
           name: name.trim(),
-          startDate: today.toISOString().slice(0, 10),
-          endDate: end.toISOString().slice(0, 10),
+          startDate: toISODate(startDate),
+          endDate: toISODate(endDate),
+          months: isMonth ? months : undefined,
+          days: !isMonth ? dayCount : undefined,
+          unitPrice,
           amount: finalTotal,
           originalAmount: subtotal,
           coupon: coupon
-            ? { code: coupon.code, discount: coupon.discount }
+            ? { code: coupon.code, discount }
             : null,
         }),
       );
@@ -171,7 +249,6 @@ function ConfirmPage() {
       setSaving(false);
     }
   };
-
 
   return (
     <div className="flex flex-col gap-6 pb-10">
@@ -232,6 +309,130 @@ function ConfirmPage() {
         </div>
       </div>
 
+      {/* Dates & Duration */}
+      <div className="rounded-2xl bg-white p-6 text-slate-900 shadow">
+        <div className="mb-4 flex items-center gap-2">
+          <CalendarIcon className="h-5 w-5 text-emerald-600" />
+          <h2 className="font-bold">
+            {isMonth ? "Pass Duration" : "Booking Dates"}
+          </h2>
+        </div>
+
+        {isMonth ? (
+          <div className="space-y-4">
+            {/* Start Date */}
+            <div className="rounded-lg border border-slate-200 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-medium text-slate-500">
+                    Start date
+                  </div>
+                  <div className="mt-1 text-base font-semibold">
+                    {formatDate(monthStart)}
+                  </div>
+                </div>
+                {editMonthStart ? (
+                  <button
+                    type="button"
+                    onClick={() => setEditMonthStart(false)}
+                    className="rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600"
+                  >
+                    Done
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setEditMonthStart(true)}
+                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    <Pencil className="h-3 w-3" /> Edit
+                  </button>
+                )}
+              </div>
+              {editMonthStart && (
+                <div className="mt-3 flex justify-center">
+                  <Calendar
+                    mode="single"
+                    selected={monthStart}
+                    onSelect={(d) => d && setMonthStart(startOfDay(d))}
+                    className="pointer-events-auto rounded-md border"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Months stepper */}
+            <div className="rounded-lg border border-slate-200 p-4">
+              <div className="mb-2 text-xs font-medium text-slate-500">
+                Number of months
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const n = Math.max(1, months - 1);
+                    setMonths(n);
+                    setMonthsInput(String(n));
+                  }}
+                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
+                  aria-label="Decrease months"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+                <input
+                  type="number"
+                  min={1}
+                  value={monthsInput}
+                  onChange={(e) => setMonthsInput(e.target.value)}
+                  onBlur={(e) => commitMonths(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") commitMonths(monthsInput);
+                  }}
+                  className="h-10 w-20 rounded-lg border border-slate-200 text-center text-base font-semibold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const n = months + 1;
+                    setMonths(n);
+                    setMonthsInput(String(n));
+                  }}
+                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
+                  aria-label="Increase months"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+                <span className="ml-2 text-sm text-slate-500">
+                  {months} {months === 1 ? "month" : "months"}
+                </span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <DateRow
+              label="From"
+              date={dayFrom}
+              editing={editDayFrom}
+              onToggle={() => setEditDayFrom((v) => !v)}
+              onChange={handleDayFromChange}
+            />
+            <DateRow
+              label="To"
+              date={dayTo}
+              editing={editDayTo}
+              minDate={dayFrom}
+              onToggle={() => setEditDayTo((v) => !v)}
+              onChange={(d) => {
+                if (!d) return;
+                setDayTo(startOfDay(d));
+                setEditDayTo(false);
+              }}
+            />
+          </div>
+        )}
+      </div>
+
       {/* Coupon Code */}
       <div className="rounded-2xl bg-white p-6 text-slate-900 shadow">
         <div className="mb-3 flex items-center gap-2">
@@ -248,7 +449,7 @@ function ConfirmPage() {
                 {coupon.type === "fixed"
                   ? `₹${coupon.value} off`
                   : `${coupon.value}% off`}
-                {" · "}−₹{coupon.discount.toLocaleString("en-IN")}
+                {" · "}−₹{discount.toLocaleString("en-IN")}
               </div>
             </div>
             <button
@@ -292,8 +493,26 @@ function ConfirmPage() {
           <SummaryRow label="Seat Number" value={draft.seatNumber ?? "—"} stripe={false} />
           <SummaryRow label="Cabin Type" value={cabinLabel} stripe />
           <SummaryRow label="Pass Type" value={passLabel} stripe={false} />
-          <SummaryRow label="Valid From" value={formatDate(today)} stripe />
-          <SummaryRow label="Valid Until" value={formatDate(end)} stripe={false} />
+          <SummaryRow label="Start Date" value={formatDate(startDate)} stripe />
+          <SummaryRow label="End Date" value={formatDate(endDate)} stripe={false} />
+          {isMonth ? (
+            <SummaryRow
+              label="Duration"
+              value={`${months} ${months === 1 ? "month" : "months"} (${monthDays} days)`}
+              stripe
+            />
+          ) : (
+            <SummaryRow
+              label="Total Days"
+              value={`${dayCount} ${dayCount === 1 ? "day" : "days"}`}
+              stripe
+            />
+          )}
+          <SummaryRow
+            label="Rate"
+            value={`₹${unitPrice.toLocaleString("en-IN")} × ${quantity}`}
+            stripe={false}
+          />
         </div>
         {coupon ? (
           <div className="mt-2 space-y-1 px-6 pb-2 pt-3 text-sm">
@@ -317,7 +536,6 @@ function ConfirmPage() {
         </div>
       </div>
 
-
       {/* Button */}
       <button
         onClick={handleProceed}
@@ -326,6 +544,55 @@ function ConfirmPage() {
       >
         {saving ? "Saving..." : "Proceed to Payment →"}
       </button>
+    </div>
+  );
+}
+
+function DateRow({
+  label,
+  date,
+  editing,
+  minDate,
+  onToggle,
+  onChange,
+}: {
+  label: string;
+  date: Date;
+  editing: boolean;
+  minDate?: Date;
+  onToggle: () => void;
+  onChange: (d: Date | undefined) => void;
+}) {
+  return (
+    <div className="rounded-lg border border-slate-200 p-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-xs font-medium text-slate-500">{label}</div>
+          <div className="mt-1 text-base font-semibold">{formatDate(date)}</div>
+        </div>
+        <button
+          type="button"
+          onClick={onToggle}
+          className={
+            editing
+              ? "rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600"
+              : "inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+          }
+        >
+          {editing ? "Done" : (<><Pencil className="h-3 w-3" /> Edit</>)}
+        </button>
+      </div>
+      {editing && (
+        <div className="mt-3 flex justify-center">
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={onChange}
+            disabled={minDate ? { before: minDate } : undefined}
+            className="pointer-events-auto rounded-md border"
+          />
+        </div>
+      )}
     </div>
   );
 }
