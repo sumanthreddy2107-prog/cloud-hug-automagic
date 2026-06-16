@@ -145,11 +145,11 @@ function ConfirmPage() {
   const endDate = isMonth ? monthEnd : dayTo;
 
   // Re-compute coupon discount on subtotal changes
-  const discount = useMemo(() => {
-    if (!coupon) return 0;
-    if (coupon.type === "fixed") return Math.min(Number(coupon.value), subtotal);
-    return Math.round((subtotal * Number(coupon.value)) / 100);
-  }, [coupon, subtotal]);
+  const discount = !coupon
+    ? 0
+    : coupon.type === "fixed"
+      ? Math.min(Number(coupon.value), subtotal)
+      : Math.round((subtotal * Number(coupon.value)) / 100);
   const finalTotal = Math.max(0, subtotal - discount);
 
   const cabinLabel = draft.seatType === "ac" ? "❄️ AC Cabin" : "🪑 Non-AC Cabin";
